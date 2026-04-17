@@ -17,7 +17,7 @@ model User {
   isPaid       Boolean       @default(false) @map("is_paid")
   paymentRef   String?       @map("payment_ref")
   paidAt       DateTime?     @map("paid_at")
-  referralCode String        @unique @default(cuid()) @map("referral_code")
+  referralCode String?       @unique @map("referral_code")
   referredById Int?          @map("referred_by_id")
   createdAt    DateTime      @default(now()) @map("created_at")
   updatedAt    DateTime      @updatedAt @map("updated_at")

@@ -31,15 +31,21 @@ export class ReferralService {
    * Get user's referral code and link
    */
   async getReferralInfo(userId: number) {
-    const user = await this.prisma.user.findUnique({
+    let user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { referralCode: true, fullName: true },
     });
+    // Auto-generate referral code if missing
+    if (!user?.referralCode) {
+      const code = 'PG' + Math.random().toString(36).substring(2, 8).toUpperCase();
+      await this.prisma.user.update({ where: { id: userId }, data: { referralCode: code } });
+      user = { ...user!, referralCode: code };
+    }
     const siteUrl = process.env.FRONTEND_URL || 'https://prepgenius-web.onrender.com';
     return {
-      referralCode: user?.referralCode,
-      referralLink: `${siteUrl}/login?ref=${user?.referralCode}`,
-      userName: user?.fullName,
+      referralCode: user.referralCode,
+      referralLink: `${siteUrl}/login?ref=${user.referralCode}`,
+      userName: user.fullName,
     };
   }
 
