@@ -1,6 +1,11 @@
 import { Module } from '@nestjs/common';
-import { PaymentController } from './payment.controller';
 import { PaymentService } from './payment.service';
+import { PaymentController } from './payment.controller';
+import { ReferralModule } from '../referral/referral.module';
 
-@Module({ controllers: [PaymentController], providers: [PaymentService] })
+@Module({
+  imports: [ReferralModule],
+  controllers: [PaymentController],
+  providers: [PaymentService],
+})
 export class PaymentModule {}

@@ -2,12 +2,14 @@ import { Injectable, UnauthorizedException, ConflictException, BadRequestExcepti
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
+import { ReferralService } from '../referral/referral.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwt: JwtService,
+    private referralService: ReferralService,
   ) {}
 
   private sanitizeUser(user: any) {
@@ -17,6 +19,7 @@ export class AuthService {
       fullName: user.fullName,
       avatarUrl: user.avatarUrl,
       isPaid: user.isPaid,
+      referralCode: user.referralCode,
       createdAt: user.createdAt,
     };
   }
@@ -64,12 +67,13 @@ export class AuthService {
     return { token: this.generateToken(user.id), user: this.sanitizeUser(user) };
   }
 
-  async googleAuth(data: { email: string; googleId: string; name?: string; picture?: string }) {
+  async googleAuth(data: { email: string; googleId: string; name?: string; picture?: string; referralCode?: string }) {
     if (!data.email || !data.googleId) {
       throw new BadRequestException('Google authentication data is incomplete');
     }
 
     let user = await this.prisma.user.findUnique({ where: { googleId: data.googleId } });
+    let isNewUser = false;
     if (!user) {
       user = await this.prisma.user.findUnique({ where: { email: data.email.toLowerCase() } });
       if (user) {
@@ -86,7 +90,13 @@ export class AuthService {
             avatarUrl: data.picture || null,
           },
         });
+        isNewUser = true;
       }
+    }
+
+    // Apply referral code for new users
+    if (isNewUser && data.referralCode) {
+      await this.referralService.applyReferralCode(user.id, data.referralCode);
     }
 
     return { token: this.generateToken(user.id), user: this.sanitizeUser(user) };

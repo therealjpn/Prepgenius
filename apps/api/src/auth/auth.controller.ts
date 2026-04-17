@@ -17,7 +17,7 @@ export class AuthController {
   }
 
   @Post('google')
-  googleAuth(@Body() body: { email: string; googleId: string; name?: string; picture?: string }) {
+  googleAuth(@Body() body: { email: string; googleId: string; name?: string; picture?: string; referralCode?: string }) {
     return this.authService.googleAuth(body);
   }
 

@@ -1,5 +1,6 @@
 import { Injectable, ForbiddenException, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { ReferralService } from '../referral/referral.service';
 import { v4 as uuidv4 } from 'uuid';
 
 const PAYMENT_AMOUNT = 2000;
@@ -8,7 +9,10 @@ const PAYSTACK_PUBLIC = process.env.PAYSTACK_PUBLIC_KEY || 'pk_test_xxxxxxxx';
 
 @Injectable()
 export class PaymentService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private referralService: ReferralService,
+  ) {}
 
   async initialize(userId: number) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
@@ -49,6 +53,9 @@ export class PaymentService {
       where: { id: userId },
       data: { isPaid: true, paymentRef: reference, paidAt: new Date() },
     });
+
+    // Award Geniuscoin to referrer
+    await this.referralService.awardReferralCoin(userId);
 
     return { success: true, message: 'Payment verified!', user: { id: user.id, email: user.email, fullName: user.fullName, isPaid: true } };
   }

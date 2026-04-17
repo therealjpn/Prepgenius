@@ -17,14 +17,53 @@ model User {
   isPaid       Boolean       @default(false) @map("is_paid")
   paymentRef   String?       @map("payment_ref")
   paidAt       DateTime?     @map("paid_at")
+  referralCode String        @unique @default(cuid()) @map("referral_code")
+  referredById Int?          @map("referred_by_id")
   createdAt    DateTime      @default(now()) @map("created_at")
   updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  referredBy   User?         @relation("UserReferrals", fields: [referredById], references: [id])
+  referrals    User[]        @relation("UserReferrals")
 
   examSessions ExamSession[]
   leaderboard  Leaderboard[]
   payments     Payment[]
+  wallet       GeniuscoinWallet?
+  referralRewards ReferralReward[] @relation("ReferrerRewards")
+  referredRewards ReferralReward[] @relation("ReferredRewards")
 
   @@map("users")
+}
+
+model GeniuscoinWallet {
+  id             Int      @id @default(autoincrement())
+  userId         Int      @unique @map("user_id")
+  balance        Int      @default(0)
+  totalEarned    Int      @default(0) @map("total_earned")
+  totalRedeemed  Int      @default(0) @map("total_redeemed")
+  lastRedeemDate DateTime? @map("last_redeem_date")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("geniuscoin_wallets")
+}
+
+model ReferralReward {
+  id             Int      @id @default(autoincrement())
+  referrerId     Int      @map("referrer_id")
+  referredUserId Int      @map("referred_user_id")
+  coinsAwarded   Int      @default(1) @map("coins_awarded")
+  status         String   @default("pending")
+  redeemableDate DateTime @map("redeemable_date")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  referrer     User @relation("ReferrerRewards", fields: [referrerId], references: [id])
+  referredUser User @relation("ReferredRewards", fields: [referredUserId], references: [id])
+
+  @@unique([referrerId, referredUserId])
+  @@index([referrerId])
+  @@map("referral_rewards")
 }
 
 model ExamSession {

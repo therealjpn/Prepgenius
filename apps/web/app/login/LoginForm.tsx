@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '@/lib/auth';
 import { api } from '@/lib/api';
@@ -15,18 +15,20 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const { setUser } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const referralCode = searchParams.get('ref') || '';
 
   const handleGoogleCallback = async (response: any) => {
     setError('');
     setLoading(true);
     try {
-      // Decode JWT to get user info
       const payload = JSON.parse(atob(response.credential.split('.')[1]));
       const data = await api.googleAuth({
         email: payload.email,
         googleId: payload.sub,
         name: payload.name,
         picture: payload.picture,
+        referralCode,
       });
       localStorage.setItem('pg_token', data.token);
       setUser(data.user);

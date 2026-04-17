@@ -54,4 +54,11 @@ export const api = {
 
   // Profile
   getStats: () => request('/api/profile/stats'),
+
+  // Referral
+  getReferralDashboard: () => request('/api/referral/dashboard'),
+  getReferralWallet: () => request('/api/referral/wallet'),
+  getReferralList: () => request('/api/referral/list'),
+  applyReferralCode: (referralCode: string) =>
+    request('/api/referral/apply', { method: 'POST', body: JSON.stringify({ referralCode }) }),
 };
