@@ -83,7 +83,7 @@ export default function ResultsPage() {
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>3rd Place</div>
               </div>
             </div>
-            <Link href="/signup" className="btn btn-primary btn-lg" style={{ marginRight: 8 }}>
+            <Link href="/login" className="btn btn-primary btn-lg" style={{ marginRight: 8 }}>
               Sign Up Now — ₦2,000 Only
             </Link>
             <Link href="/leaderboard" className="btn btn-glass btn-lg">
@@ -111,7 +111,7 @@ export default function ResultsPage() {
         <div className="results-actions">
           {demo ? (
             <>
-              <Link href="/signup" className="btn btn-primary btn-lg">🚀 Sign Up & Start Competing</Link>
+              <Link href="/login" className="btn btn-primary btn-lg">🚀 Sign Up & Start Competing</Link>
               <Link href="/subjects" className="btn btn-glass btn-lg">🔄 Try Another Subject</Link>
             </>
           ) : (

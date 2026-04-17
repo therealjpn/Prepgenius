@@ -77,7 +77,7 @@ export default function HomePage() {
       </div>
 
       <div className="landing-actions">
-        <Link href="/signup" className="btn btn-primary btn-lg">
+        <Link href="/login" className="btn btn-primary btn-lg">
           Get Started Now
         </Link>
         <Link href="/leaderboard" className="btn btn-glass btn-lg">

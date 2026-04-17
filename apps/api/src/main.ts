@@ -7,7 +7,19 @@ dotenv.config();
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: (origin: string, callback: any) => {
+      const allowed = [
+        process.env.FRONTEND_URL,
+        'http://localhost:3000',
+        'http://localhost:3001',
+      ].filter(Boolean);
+      // Allow requests with no origin (server-to-server, curl, etc.)
+      if (!origin || allowed.includes(origin) || origin.endsWith('.onrender.com')) {
+        callback(null, true);
+      } else {
+        callback(null, true); // Allow all in early stage — tighten later
+      }
+    },
     credentials: true,
   });
 
