@@ -23,6 +23,10 @@ services:
         value: ALOC-1c8d5c2dd620ee669791
       - key: NODE_ENV
         value: production
+      - key: SQUAD_PUBLIC_KEY
+        sync: false
+      - key: SQUAD_SECRET_KEY
+        sync: false
       - key: FRONTEND_URL
         fromService:
           name: prepgenius-web
