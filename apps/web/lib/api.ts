@@ -25,7 +25,7 @@ export const api = {
     request('/api/auth/signup', { method: 'POST', body: JSON.stringify({ email, password, fullName }) }),
   login: (email: string, password: string) =>
     request('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
-  googleAuth: (data: { email: string; googleId: string; name?: string; picture?: string }) =>
+  googleAuth: (data: { email: string; googleId: string; name?: string; picture?: string; referralCode?: string }) =>
     request('/api/auth/google', { method: 'POST', body: JSON.stringify(data) }),
   getMe: () => request('/api/auth/me'),
 
