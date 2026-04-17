@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int           @id @default(autoincrement())
+  email        String        @unique
+  passwordHash String?       @map("password_hash")
+  fullName     String        @map("full_name")
+  googleId     String?       @unique @map("google_id")
+  avatarUrl    String?       @map("avatar_url")
+  isPaid       Boolean       @default(false) @map("is_paid")
+  paymentRef   String?       @map("payment_ref")
+  paidAt       DateTime?     @map("paid_at")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  examSessions ExamSession[]
+  leaderboard  Leaderboard[]
+  payments     Payment[]
+
+  @@map("users")
+}
+
+model ExamSession {
+  id              Int       @id @default(autoincrement())
+  userId          Int       @map("user_id")
+  examType        String    @default("WAEC") @map("exam_type")
+  subject         String
+  year            String?
+  totalQuestions  Int       @map("total_questions")
+  correctAnswers  Int       @default(0) @map("correct_answers")
+  scorePercentage Float     @default(0) @map("score_percentage")
+  pointsEarned    Int       @default(0) @map("points_earned")
+  timeTakenSeconds Int?     @map("time_taken_seconds")
+  answersJson     String?   @map("answers_json")
+  completed       Boolean   @default(false)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  completedAt     DateTime? @map("completed_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("exam_sessions")
+}
+
+model Leaderboard {
+  id             Int      @id @default(autoincrement())
+  userId         Int      @map("user_id")
+  weekStart      String   @map("week_start")
+  totalPoints    Int      @default(0) @map("total_points")
+  totalCorrect   Int      @default(0) @map("total_correct")
+  totalQuestions Int      @default(0) @map("total_questions")
+  examsTaken     Int      @default(0) @map("exams_taken")
+  accuracy       Float    @default(0)
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, weekStart])
+  @@index([weekStart, totalPoints(sort: Desc)])
+  @@map("leaderboard")
+}
+
+model Payment {
+  id         Int       @id @default(autoincrement())
+  userId     Int       @map("user_id")
+  reference  String    @unique
+  amount     Int
+  currency   String    @default("NGN")
+  status     String    @default("pending")
+  provider   String    @default("paystack")
+  metadata   String?
+  createdAt  DateTime  @default(now()) @map("created_at")
+  verifiedAt DateTime? @map("verified_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([reference])
+  @@map("payments")
+}

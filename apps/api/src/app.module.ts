@@ -1,0 +1,19 @@
+import { Module } from '@nestjs/common';
+import { PrismaModule } from './prisma/prisma.module';
+import { AuthModule } from './auth/auth.module';
+import { ExamModule } from './exam/exam.module';
+import { PaymentModule } from './payment/payment.module';
+import { LeaderboardModule } from './leaderboard/leaderboard.module';
+import { UserModule } from './user/user.module';
+
+@Module({
+  imports: [
+    PrismaModule,
+    AuthModule,
+    ExamModule,
+    PaymentModule,
+    LeaderboardModule,
+    UserModule,
+  ],
+})
+export class AppModule {}
