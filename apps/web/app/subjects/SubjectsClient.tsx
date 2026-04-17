@@ -23,6 +23,19 @@ export function SubjectsClient() {
     api.getSubjects().then(d => { setSubjects(d.subjects); setLoading(false); }).catch(() => setLoading(false));
   }, []);
 
+  const startDemo = async (subjectName: string) => {
+    setStarting(true);
+    try {
+      const data = await api.getDemoQuestions(subjectName);
+      sessionStorage.setItem('pg_exam', JSON.stringify({ ...data, demo: true }));
+      router.push('/exam');
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setStarting(false);
+    }
+  };
+
   const startExam = async () => {
     if (!user) return router.push('/login');
     if (!user.isPaid) return router.push('/payment');
@@ -46,13 +59,21 @@ export function SubjectsClient() {
     <div className="page-container">
       <div className="section-header">
         <h1>Choose Your Subject</h1>
-        <p>Select a WAEC/NECO subject and start practicing</p>
+        <p>{user ? 'Select a WAEC/NECO subject and start practicing' : 'Try 5 free questions — no account needed!'}</p>
       </div>
+
+      {!user && (
+        <div style={{ textAlign: 'center', marginBottom: 32, padding: '16px 24px', borderRadius: 12, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
+          <span style={{ color: 'var(--gold)', fontWeight: 600 }}>🎯 Free Demo Mode</span>
+          <span style={{ color: 'var(--text-dim)', marginLeft: 8 }}>— Pick any subject and try 5 questions for free!</span>
+        </div>
+      )}
 
       <div className="subjects-grid">
         {subjects.map(s => (
           <div key={s.name} className={`subject-card ${selected?.name === s.name ? 'selected' : ''}`}
-            onClick={() => setSelected(s)} style={{ borderColor: selected?.name === s.name ? s.color : undefined }}>
+            onClick={() => user ? setSelected(s) : startDemo(s.name)}
+            style={{ borderColor: selected?.name === s.name ? s.color : undefined }}>
             <div className="subject-icon">{s.icon}</div>
             <div className="subject-name">{s.name}</div>
             <div className="subject-meta">
@@ -61,11 +82,16 @@ export function SubjectsClient() {
               </span>
               <span className="subject-badge badge-count">{s.questionCount} questions</span>
             </div>
+            {!user && (
+              <span style={{ color: 'var(--green-light)', fontSize: '0.85rem', fontWeight: 600, marginTop: 4 }}>
+                ▶ Try 5 Free Questions
+              </span>
+            )}
           </div>
         ))}
       </div>
 
-      {selected && (
+      {selected && user && (
         <div className="config-panel">
           <div className="config-header">
             <h3>{selected.icon} {selected.name}</h3>

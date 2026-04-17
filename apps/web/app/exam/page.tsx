@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 interface Question {
   id: number; question: string; options: string[];
   topic: string; year: string; exam_type: string;
+  correct_answer?: string; explanation?: string;
 }
 
 export default function ExamPage() {
@@ -13,6 +14,7 @@ export default function ExamPage() {
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [subject, setSubject] = useState('');
   const [examType, setExamType] = useState('');
+  const [isDemo, setIsDemo] = useState(false);
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -23,9 +25,10 @@ export default function ExamPage() {
     if (!raw) { router.push('/subjects'); return; }
     const data = JSON.parse(raw);
     setQuestions(data.questions);
-    setSessionId(data.sessionId);
+    setSessionId(data.sessionId || null);
     setSubject(data.subject);
-    setExamType(data.examType);
+    setExamType(data.examType || 'DEMO');
+    setIsDemo(!!data.demo);
   }, [router]);
 
   const selectAnswer = (option: string) => {
@@ -33,11 +36,17 @@ export default function ExamPage() {
   };
 
   const submit = async () => {
-    if (!confirm(`Submit ${Object.keys(answers).length}/${questions.length} answers?`)) return;
+    const answered = Object.keys(answers).length;
+    if (!confirm(`Submit ${answered}/${questions.length} answers?`)) return;
     setSubmitting(true);
     try {
-      const data = await api.submitExam({ sessionId: sessionId!, answers });
-      sessionStorage.setItem('pg_results', JSON.stringify(data));
+      let data;
+      if (isDemo) {
+        data = await api.submitDemo({ subject, answers, questions });
+      } else {
+        data = await api.submitExam({ sessionId: sessionId!, answers });
+      }
+      sessionStorage.setItem('pg_results', JSON.stringify({ ...data, demo: isDemo }));
       sessionStorage.removeItem('pg_exam');
       router.push('/results');
     } catch (err: any) {
@@ -58,9 +67,15 @@ export default function ExamPage() {
         <div className="exam-header">
           <div className="exam-info">
             <h3>{subject}</h3>
-            <span className="exam-badge">{examType}</span>
+            <span className="exam-badge">{isDemo ? '🎯 FREE DEMO' : examType}</span>
           </div>
         </div>
+
+        {isDemo && (
+          <div style={{ marginBottom: 16, padding: '10px 16px', borderRadius: 10, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', fontSize: '0.85rem', color: 'var(--gold)' }}>
+            🎯 Demo Mode — 5 free questions. Sign up to unlock 20,000+ questions!
+          </div>
+        )}
 
         <div className="exam-progress">
           <div className="progress-track"><div className="progress-fill" style={{ width: `${progress}%` }} /></div>

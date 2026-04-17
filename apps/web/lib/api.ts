@@ -38,6 +38,11 @@ export const api = {
   submitExam: (data: { sessionId: number; answers: Record<number, string> }) =>
     request('/api/exam/submit', { method: 'POST', body: JSON.stringify(data) }),
 
+  // Demo (no auth)
+  getDemoQuestions: (subject: string) => request(`/api/exam/demo?subject=${encodeURIComponent(subject)}`),
+  submitDemo: (data: { subject: string; answers: Record<number, string>; questions: any[] }) =>
+    request('/api/exam/demo/submit', { method: 'POST', body: JSON.stringify(data) }),
+
   // Payment
   initializePayment: () => request('/api/payment/initialize', { method: 'POST' }),
   verifyPayment: (reference: string) =>

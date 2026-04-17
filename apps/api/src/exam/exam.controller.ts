@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Req, Query } from '@nestjs/common';
 import { ExamService } from './exam.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -9,6 +9,16 @@ export class ExamController {
   @Get('subjects')
   getSubjects() {
     return this.examService.getSubjects();
+  }
+
+  @Get('exam/demo')
+  getDemoQuestions(@Query('subject') subject: string) {
+    return this.examService.getDemoQuestions(subject);
+  }
+
+  @Post('exam/demo/submit')
+  submitDemo(@Body() body: { subject: string; answers: Record<number, string>; questions: any[] }) {
+    return this.examService.submitDemo(body);
   }
 
   @UseGuards(JwtAuthGuard)

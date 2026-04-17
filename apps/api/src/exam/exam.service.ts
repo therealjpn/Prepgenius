@@ -47,6 +47,47 @@ export class ExamService {
     return { subjects, alocAvailable };
   }
 
+  getDemoQuestions(subject: string) {
+    if (!subject || !localQuestions[subject]) {
+      // Default to Mathematics if no subject specified
+      subject = Object.keys(localQuestions)[0];
+    }
+    const bank = localQuestions[subject];
+    const selected = shuffleArray([...bank.questions]).slice(0, 5);
+    return {
+      demo: true,
+      subject,
+      totalQuestions: 5,
+      questions: selected.map((q: any, i: number) => ({
+        id: i, question: q.question, options: q.options,
+        topic: q.topic, year: q.year, exam_type: q.exam_type,
+        correct_answer: q.correct_answer, explanation: q.explanation,
+      })),
+    };
+  }
+
+  submitDemo(body: { subject: string; answers: Record<number, string>; questions: any[] }) {
+    const { answers, questions, subject } = body;
+    let correctCount = 0;
+    const results = questions.map((q: any, i: number) => {
+      const userAnswer = answers[i] || '';
+      const isCorrect = userAnswer.trim() === q.correct_answer.trim();
+      if (isCorrect) correctCount++;
+      return {
+        questionId: i, question: q.question, options: q.options,
+        userAnswer, correctAnswer: q.correct_answer, isCorrect,
+        explanation: q.explanation, topic: q.topic, year: q.year,
+      };
+    });
+    const total = questions.length;
+    const percentage = Math.round((correctCount / total) * 100);
+    return {
+      demo: true, results,
+      score: { correct: correctCount, total, percentage, pointsEarned: 0, timeTaken: 0 },
+      subject, examType: 'DEMO',
+    };
+  }
+
   async startExam(userId: number, body: { subject: string; examType?: string; year?: string; questionCount?: number }) {
     const { subject, examType = 'WAEC', year = 'all', questionCount = 10 } = body;
     if (!subject || !localQuestions[subject]) {
