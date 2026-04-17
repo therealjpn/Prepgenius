@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 
@@ -18,6 +19,7 @@ export function Navbar() {
     <nav className="navbar">
       <div className="nav-inner">
         <Link href="/" className="nav-brand">
+          <Image src="/logo.png" alt="PrepGenius" width={32} height={32} style={{ borderRadius: 6 }} />
           Prep<span>Genius</span>
         </Link>
         <div className="nav-links">

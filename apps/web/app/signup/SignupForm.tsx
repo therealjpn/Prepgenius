@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useAuth } from '@/lib/auth';
 
 export function SignupForm() {
@@ -31,6 +32,7 @@ export function SignupForm() {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
+          <Image src="/logo.png" alt="PrepGenius" width={56} height={56} style={{ borderRadius: 12, margin: '0 auto 12px' }} />
           <h2>Create Account</h2>
           <p>Join thousands of Nigerian students</p>
         </div>
