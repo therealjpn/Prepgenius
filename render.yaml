@@ -28,10 +28,7 @@ services:
       - key: SQUAD_SECRET_KEY
         sync: false
       - key: FRONTEND_URL
-        fromService:
-          name: prepgenie-web
-          type: web
-          property: url
+        value: https://prepgenie.xyz
 
   - type: web
     name: prepgenie-web
@@ -42,12 +39,6 @@ services:
     startCommand: npm start
     envVars:
       - key: NEXT_PUBLIC_API_URL
-        fromService:
-          name: prepgenie-api
-          type: web
-          property: url
+        value: https://api.prepgenie.xyz
       - key: NEXT_PUBLIC_SITE_URL
-        fromService:
-          name: prepgenie-web
-          type: web
-          property: url
+        value: https://prepgenie.xyz
