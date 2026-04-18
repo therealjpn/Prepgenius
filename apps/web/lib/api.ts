@@ -63,7 +63,7 @@ export const api = {
     request('/api/referral/apply', { method: 'POST', body: JSON.stringify({ referralCode }) }),
 
   // Admin
-  adminMetrics: () => request('/api/admin/metrics'),
+  adminMetrics: (period?: string) => request(`/api/admin/metrics?period=${period || 'all'}`),
   adminUsers: (search?: string, page?: number) =>
     request(`/api/admin/users?search=${search || ''}&page=${page || 1}`),
   adminTogglePaid: (userId: number) =>

@@ -10,8 +10,8 @@ export class AdminController {
 
   // ── Metrics ──
   @Get('metrics')
-  getMetrics() {
-    return this.adminService.getMetrics();
+  getMetrics(@Query('period') period?: string) {
+    return this.adminService.getMetrics(period || 'all');
   }
 
   // ── Users ──

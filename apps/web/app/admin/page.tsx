@@ -4,23 +4,45 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { api } from '@/lib/api';
 
+const PERIODS = [
+  { key: 'today', label: 'Today' },
+  { key: '7d', label: '7 Days' },
+  { key: '30d', label: '30 Days' },
+  { key: 'year', label: 'This Year' },
+  { key: 'all', label: 'All Time' },
+];
+
 export default function AdminPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [tab, setTab] = useState<'metrics' | 'users' | 'tickets'>('metrics');
+  const [period, setPeriod] = useState('all');
   const [metrics, setMetrics] = useState<any>(null);
   const [users, setUsers] = useState<any[]>([]);
   const [userTotal, setUserTotal] = useState(0);
   const [tickets, setTickets] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [metricsLoading, setMetricsLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
+
+  const fetchMetrics = useCallback(async (p: string) => {
+    setMetricsLoading(true);
+    try {
+      const m = await api.adminMetrics(p);
+      setMetrics(m);
+    } catch (err: any) {
+      if (err.message?.includes('Admin')) router.push('/');
+    } finally {
+      setMetricsLoading(false);
+    }
+  }, [router]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const [m, u, t] = await Promise.all([
-        api.adminMetrics(),
+        api.adminMetrics(period),
         api.adminUsers(search),
         api.adminTickets(),
       ]);
@@ -33,7 +55,7 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
-  }, [search, router]);
+  }, [search, period, router]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -42,16 +64,17 @@ export default function AdminPage() {
     fetchData();
   }, [user, authLoading, router, fetchData]);
 
+  const handlePeriodChange = (p: string) => {
+    setPeriod(p);
+    fetchMetrics(p);
+  };
+
   const handleTogglePaid = async (userId: number) => {
     setActionLoading(userId);
     try {
       const result = await api.adminTogglePaid(userId);
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, isPaid: result.isPaid } : u));
-      setMetrics((prev: any) => ({
-        ...prev,
-        paidUsers: result.isPaid ? prev.paidUsers + 1 : prev.paidUsers - 1,
-        conversionRate: (((result.isPaid ? prev.paidUsers + 1 : prev.paidUsers - 1) / prev.totalUsers) * 100).toFixed(1),
-      }));
+      fetchMetrics(period); // Refresh metrics
     } catch (err: any) { alert(err.message); }
     finally { setActionLoading(null); }
   };
@@ -85,7 +108,7 @@ export default function AdminPage() {
   return (
     <div className="page-container" style={{ maxWidth: 1100, margin: '0 auto' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28, flexWrap: 'wrap', gap: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems:'center', marginBottom: 28, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-bright)', margin: 0 }}>🛡️ Admin Dashboard</h1>
           <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', marginTop: 4 }}>Manage users, view metrics & resolve support tickets</p>
@@ -105,18 +128,66 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* Metrics Cards */}
+      {/* Metrics Tab */}
       {tab === 'metrics' && metrics && (
         <div>
+          {/* Period Filter */}
+          <div style={{
+            display: 'flex', gap: 6, marginBottom: 20, padding: 4,
+            background: 'var(--bg-card)', borderRadius: 12, width: 'fit-content',
+            border: '1px solid var(--border)',
+          }}>
+            {PERIODS.map(p => (
+              <button key={p.key} onClick={() => handlePeriodChange(p.key)}
+                style={{
+                  padding: '6px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600,
+                  border: 'none', cursor: 'pointer', transition: 'all 0.2s',
+                  background: period === p.key ? 'var(--green)' : 'transparent',
+                  color: period === p.key ? '#fff' : 'var(--text-dim)',
+                }}>
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          {metricsLoading && (
+            <div style={{ textAlign: 'center', padding: 12 }}>
+              <div className="spinner" style={{ width: 20, height: 20, margin: '0 auto' }} />
+            </div>
+          )}
+
+          {/* Period-specific cards */}
+          <div style={{ marginBottom: 12, fontSize: '0.8rem', color: 'var(--text-dim)' }}>
+            {period === 'all' ? 'All-time metrics' : `Filtered: ${PERIODS.find(p => p.key === period)?.label}`}
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 24 }}>
-            <MetricCard label="Total Revenue" value={`₦${(metrics.totalRevenueNgn || 0).toLocaleString()}`} icon="💵" color="#10b981" />
-            <MetricCard label="Total Signups" value={metrics.totalUsers} icon="👥" color="var(--green-light)" />
-            <MetricCard label="Paid Users" value={metrics.paidUsers} icon="💰" color="var(--gold)" />
+            <MetricCard
+              label={period === 'all' ? 'Total Revenue' : 'Revenue'}
+              value={`₦${(metrics.revenueNgn || 0).toLocaleString()}`}
+              icon="💵" color="#10b981"
+              subtitle={period !== 'all' ? `All-time: ₦${(metrics.totalRevenueNgnAll || 0).toLocaleString()}` : undefined}
+            />
+            <MetricCard
+              label={period === 'all' ? 'Total Signups' : 'New Signups'}
+              value={metrics.newSignups}
+              icon="👥" color="var(--green-light)"
+              subtitle={period !== 'all' ? `All-time: ${metrics.totalUsersAll}` : undefined}
+            />
+            <MetricCard
+              label={period === 'all' ? 'Paid Users' : 'New Paid'}
+              value={metrics.newPaidUsers}
+              icon="💰" color="var(--gold)"
+              subtitle={period !== 'all' ? `All-time: ${metrics.paidUsersAll}` : undefined}
+            />
             <MetricCard label="Conversion Rate" value={`${metrics.conversionRate}%`} icon="📈" color="#818cf8" />
-            <MetricCard label="Total Payments" value={metrics.totalPayments || 0} icon="🧾" color="#a78bfa" />
+            <MetricCard
+              label={period === 'all' ? 'Total Payments' : 'Payments'}
+              value={metrics.paymentsCount || 0}
+              icon="🧾" color="#a78bfa"
+            />
             <MetricCard label="Banned Users" value={metrics.bannedUsers} icon="🚫" color="#ef4444" />
             <MetricCard label="Open Tickets" value={metrics.openTickets} icon="🎫" color="#f59e0b" />
-            <MetricCard label="Recent Signups (7d)" value={metrics.recentSignups} icon="🆕" color="#06b6d4" />
           </div>
         </div>
       )}
@@ -250,7 +321,7 @@ export default function AdminPage() {
 }
 
 // ── Helper Components ──────────────────────────────────────────
-function MetricCard({ label, value, icon, color }: { label: string; value: string | number; icon: string; color: string }) {
+function MetricCard({ label, value, icon, color, subtitle }: { label: string; value: string | number; icon: string; color: string; subtitle?: string }) {
   return (
     <div style={{
       padding: 20, borderRadius: 14, background: 'var(--bg-card)', border: '1px solid var(--border)',
@@ -261,6 +332,7 @@ function MetricCard({ label, value, icon, color }: { label: string; value: strin
         <span style={{ fontSize: 20 }}>{icon}</span>
       </div>
       <div style={{ fontSize: '2rem', fontWeight: 800, color, lineHeight: 1 }}>{value}</div>
+      {subtitle && <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: 2 }}>{subtitle}</div>}
     </div>
   );
 }

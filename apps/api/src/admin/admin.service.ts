@@ -12,10 +12,33 @@ export class AdminService {
   ) {}
 
   // ── Metrics ──────────────────────────────────────────────────
-  async getMetrics() {
-    const [totalUsers, paidUsers, bannedUsers, openTickets, totalTickets, revenueResult] = await Promise.all([
+  private getDateRange(period: string): Date | null {
+    const now = new Date();
+    switch (period) {
+      case 'today': return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      case '7d': { const d = new Date(); d.setDate(d.getDate() - 7); return d; }
+      case '30d': { const d = new Date(); d.setDate(d.getDate() - 30); return d; }
+      case 'year': return new Date(now.getFullYear(), 0, 1);
+      default: return null; // 'all'
+    }
+  }
+
+  async getMetrics(period = 'all') {
+    const since = this.getDateRange(period);
+    const dateFilter = since ? { gte: since } : undefined;
+    const userWhere = dateFilter ? { createdAt: dateFilter } : {};
+    const paymentWhere: any = { status: 'success' };
+    if (dateFilter) paymentWhere.verifiedAt = dateFilter;
+
+    const [
+      totalUsersAll, totalUsersFiltered, paidUsersAll, paidUsersFiltered,
+      bannedUsers, openTickets, totalTickets,
+      revenueAll, revenueFiltered,
+    ] = await Promise.all([
       this.prisma.user.count(),
+      this.prisma.user.count({ where: userWhere }),
       this.prisma.user.count({ where: { isPaid: true } }),
+      this.prisma.user.count({ where: { isPaid: true, ...userWhere } }),
       this.prisma.user.count({ where: { isBanned: true } }),
       this.prisma.supportTicket.count({ where: { status: 'open' } }),
       this.prisma.supportTicket.count(),
@@ -24,32 +47,31 @@ export class AdminService {
         _sum: { amount: true },
         _count: true,
       }),
+      this.prisma.payment.aggregate({
+        where: paymentWhere,
+        _sum: { amount: true },
+        _count: true,
+      }),
     ]);
 
-    const conversionRate = totalUsers > 0 ? ((paidUsers / totalUsers) * 100).toFixed(1) : '0.0';
-    // amount is stored in kobo, convert to naira
-    const totalRevenueKobo = revenueResult._sum.amount || 0;
-    const totalRevenueNgn = totalRevenueKobo / 100;
-
-    // Signups grouped by day for last 7 days
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const recentUsers = await this.prisma.user.findMany({
-      where: { createdAt: { gte: sevenDaysAgo } },
-      select: { createdAt: true },
-      orderBy: { createdAt: 'asc' },
-    });
+    const conversionRate = totalUsersAll > 0 ? ((paidUsersAll / totalUsersAll) * 100).toFixed(1) : '0.0';
 
     return {
-      totalUsers,
-      paidUsers,
-      bannedUsers,
+      period,
+      // All-time totals
+      totalUsersAll,
+      paidUsersAll,
+      totalRevenueNgnAll: (revenueAll._sum.amount || 0) / 100,
+      // Filtered by period
+      newSignups: totalUsersFiltered,
+      newPaidUsers: paidUsersFiltered,
+      revenueNgn: (revenueFiltered._sum.amount || 0) / 100,
+      paymentsCount: revenueFiltered._count,
+      // Always all-time
       conversionRate: parseFloat(conversionRate),
-      totalRevenueNgn,
-      totalPayments: revenueResult._count,
+      bannedUsers,
       openTickets,
       totalTickets,
-      recentSignups: recentUsers.length,
     };
   }
 
