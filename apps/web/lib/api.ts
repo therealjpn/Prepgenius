@@ -54,6 +54,7 @@ export const api = {
 
   // Profile
   getStats: () => request('/api/profile/stats'),
+  deleteProfile: () => request('/api/profile/delete', { method: 'DELETE' }),
 
   // Referral
   getReferralDashboard: () => request('/api/referral/dashboard'),

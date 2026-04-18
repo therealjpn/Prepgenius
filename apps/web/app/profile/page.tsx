@@ -5,11 +5,14 @@ import { useAuth } from '@/lib/auth';
 import { api } from '@/lib/api';
 
 export default function ProfilePage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, logout } = useAuth();
   const [dashboard, setDashboard] = useState<any>(null);
   const [stats, setStats] = useState<any>(null);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmText, setConfirmText] = useState('');
   const router = useRouter();
 
   useEffect(() => {
@@ -31,6 +34,19 @@ export default function ProfilePage() {
     navigator.clipboard.writeText(dashboard.referralInfo.referralLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDeleteProfile = async () => {
+    if (confirmText !== 'DELETE') return;
+    setDeleting(true);
+    try {
+      await api.deleteProfile();
+      logout();
+      router.push('/');
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete profile');
+      setDeleting(false);
+    }
   };
 
   if (authLoading || loading) return <div className="loading-container"><div className="spinner" /><p>Loading profile...</p></div>;
@@ -183,7 +199,7 @@ export default function ProfilePage() {
         {/* Exam Stats */}
         {stats && (
           <div style={{
-            padding: 24, borderRadius: 16,
+            padding: 24, marginBottom: 24, borderRadius: 16,
             background: 'var(--bg-card)', border: '1px solid var(--border)',
           }}>
             <h3 style={{ color: 'var(--text-bright)', margin: '0 0 16px' }}>📊 Exam Stats</h3>
@@ -203,7 +219,86 @@ export default function ProfilePage() {
             </div>
           </div>
         )}
+
+        {/* Danger Zone — Delete Profile */}
+        <div style={{
+          padding: 24, borderRadius: 16, marginTop: 16,
+          background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.2)',
+        }}>
+          <h3 style={{ color: '#ef4444', margin: '0 0 8px', fontSize: '1rem' }}>⚠️ Danger Zone</h3>
+          <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', lineHeight: 1.6, margin: '0 0 16px' }}>
+            Permanently delete your account and all associated data. This action <strong>cannot be undone</strong>.
+          </p>
+          <button onClick={() => setShowDeleteModal(true)} style={{
+            padding: '10px 20px', borderRadius: 10, border: '1px solid rgba(239,68,68,0.4)',
+            background: 'rgba(239,68,68,0.1)', color: '#ef4444', fontWeight: 700,
+            fontSize: '0.85rem', cursor: 'pointer', transition: 'all 0.2s',
+          }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.2)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; }}
+          >
+            🗑️ Delete My Profile
+          </button>
+        </div>
+
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <>
+          <div onClick={() => setShowDeleteModal(false)} style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
+            zIndex: 9998,
+          }} />
+          <div style={{
+            position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+            width: '92%', maxWidth: 440, zIndex: 9999, padding: '28px 24px',
+            background: 'var(--bg-card)', border: '2px solid rgba(239,68,68,0.4)', borderRadius: 20,
+            boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+          }}>
+            <div style={{ textAlign: 'center', fontSize: 48, marginBottom: 12 }}>⚠️</div>
+            <h3 style={{ textAlign: 'center', color: '#ef4444', fontWeight: 800, fontSize: '1.2rem', marginBottom: 12 }}>
+              Are you sure?
+            </h3>
+            <p style={{
+              textAlign: 'center', color: 'var(--text)', fontSize: '0.88rem', lineHeight: 1.6, marginBottom: 20,
+              padding: '12px 16px', borderRadius: 10, background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)',
+            }}>
+              Deleting your profile is <strong>permanent</strong>. You will lose your practice history and your{' '}
+              <strong>₦2,000 premium access will be forfeited without a refund</strong>.
+            </p>
+            <p style={{ color: 'var(--text-dim)', fontSize: '0.8rem', marginBottom: 8, textAlign: 'center' }}>
+              Type <strong style={{ color: '#ef4444' }}>DELETE</strong> to confirm:
+            </p>
+            <input
+              value={confirmText} onChange={(e) => setConfirmText(e.target.value)}
+              placeholder="Type DELETE to confirm"
+              style={{
+                width: '100%', padding: '10px 14px', borderRadius: 10,
+                background: 'var(--bg)', border: '1px solid var(--border)',
+                color: 'var(--text)', fontSize: '0.9rem', outline: 'none',
+                textAlign: 'center', marginBottom: 16,
+              }}
+            />
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => { setShowDeleteModal(false); setConfirmText(''); }} style={{
+                flex: 1, padding: '10px 16px', borderRadius: 10, border: '1px solid var(--border)',
+                background: 'var(--bg-card)', color: 'var(--text)', fontWeight: 600, cursor: 'pointer',
+              }}>
+                Cancel
+              </button>
+              <button onClick={handleDeleteProfile} disabled={confirmText !== 'DELETE' || deleting} style={{
+                flex: 1, padding: '10px 16px', borderRadius: 10, border: 'none',
+                background: confirmText === 'DELETE' ? '#ef4444' : 'rgba(239,68,68,0.2)',
+                color: '#fff', fontWeight: 700, cursor: confirmText === 'DELETE' ? 'pointer' : 'not-allowed',
+                opacity: confirmText === 'DELETE' ? 1 : 0.5, transition: 'all 0.2s',
+              }}>
+                {deleting ? 'Deleting...' : '🗑️ Delete Forever'}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 function getCurrentWeekStart(): string {
@@ -13,6 +13,8 @@ function getCurrentWeekStart(): string {
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
+
   constructor(private prisma: PrismaService) {}
 
   async getStats(userId: number) {
@@ -57,5 +59,29 @@ export class UserService {
         total: s.totalQuestions, points: s.pointsEarned, completedAt: s.completedAt,
       })),
     };
+  }
+
+  async deleteProfile(userId: number) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new Error('User not found');
+
+    this.logger.warn(`🗑️ Deleting profile for user ${userId} (${user.email})`);
+
+    // Delete all related data in correct order (foreign key dependencies)
+    await this.prisma.$transaction([
+      this.prisma.referralReward.deleteMany({ where: { OR: [{ referrerId: userId }, { referredUserId: userId }] } }),
+      this.prisma.geniuscoinWallet.deleteMany({ where: { userId } }),
+      this.prisma.supportTicket.deleteMany({ where: { userId } }),
+      this.prisma.leaderboard.deleteMany({ where: { userId } }),
+      this.prisma.examSession.deleteMany({ where: { userId } }),
+      this.prisma.payment.deleteMany({ where: { userId } }),
+      // Clear referredById on users who were referred by this user
+      this.prisma.user.updateMany({ where: { referredById: userId }, data: { referredById: null } }),
+      // Delete the user
+      this.prisma.user.delete({ where: { id: userId } }),
+    ]);
+
+    this.logger.warn(`✅ Profile deleted for ${user.email}`);
+    return { message: 'Your account has been permanently deleted.' };
   }
 }

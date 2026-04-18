@@ -105,6 +105,7 @@ export function LoginForm() {
           <p>We never store your password</p>
           <p style={{ marginTop: 8, fontSize: '0.72rem', color: 'var(--text-dim)' }}>
             By signing in, you agree to our{' '}
+            <a href="/terms" style={{ color: 'var(--green)', textDecoration: 'underline' }}>Terms</a> and{' '}
             <a href="/privacy" style={{ color: 'var(--green)', textDecoration: 'underline' }}>Privacy Policy</a>
           </p>
         </div>

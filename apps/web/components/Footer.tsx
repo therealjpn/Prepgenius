@@ -19,11 +19,16 @@ export function Footer() {
         </div>
 
         {/* Center: Links */}
-        <div style={{ display: 'flex', gap: 20 }}>
+        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
           <Link href="/privacy" style={{ color: 'var(--text-dim)', fontSize: '0.8rem', textDecoration: 'none', transition: 'color 0.2s' }}
             onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--green)')}
             onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-dim)')}>
             🔒 Privacy Policy
+          </Link>
+          <Link href="/terms" style={{ color: 'var(--text-dim)', fontSize: '0.8rem', textDecoration: 'none', transition: 'color 0.2s' }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--green)')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-dim)')}>
+            📜 Terms & Conditions
           </Link>
           <Link href="/support" style={{ color: 'var(--text-dim)', fontSize: '0.8rem', textDecoration: 'none', transition: 'color 0.2s' }}
             onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--green)')}
