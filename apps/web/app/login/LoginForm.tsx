@@ -13,10 +13,15 @@ export function LoginForm() {
   const googleBtnRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { setUser } = useAuth();
+  const { user, setUser } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const referralCode = searchParams.get('ref') || '';
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) router.push('/subjects');
+  }, [user, router]);
 
   const handleGoogleCallback = async (response: any) => {
     setError('');
