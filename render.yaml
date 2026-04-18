@@ -8,7 +8,7 @@ services:
   - type: web
     name: prepgenius-api
     runtime: node
-    plan: free
+    plan: starter              # $7/mo — always on, no cold starts
     rootDir: apps/api
     buildCommand: npm install && npx prisma generate && npm run build
     startCommand: npx prisma db push --accept-data-loss && node dist/main.js
@@ -20,7 +20,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: ALOC_ACCESS_TOKEN
-        value: ALOC-1c8d5c2dd620ee669791
+        sync: false
       - key: NODE_ENV
         value: production
       - key: SQUAD_PUBLIC_KEY
@@ -36,7 +36,7 @@ services:
   - type: web
     name: prepgenius-web
     runtime: node
-    plan: free
+    plan: starter              # $7/mo — always on
     rootDir: apps/web
     buildCommand: npm install && npm run build
     startCommand: npm start
