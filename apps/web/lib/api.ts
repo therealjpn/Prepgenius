@@ -61,4 +61,17 @@ export const api = {
   getReferralList: () => request('/api/referral/list'),
   applyReferralCode: (referralCode: string) =>
     request('/api/referral/apply', { method: 'POST', body: JSON.stringify({ referralCode }) }),
+
+  // Admin
+  adminMetrics: () => request('/api/admin/metrics'),
+  adminUsers: (search?: string, page?: number) =>
+    request(`/api/admin/users?search=${search || ''}&page=${page || 1}`),
+  adminTogglePaid: (userId: number) =>
+    request(`/api/admin/users/${userId}/toggle-paid`, { method: 'PATCH' }),
+  adminToggleBan: (userId: number) =>
+    request(`/api/admin/users/${userId}/toggle-ban`, { method: 'PATCH' }),
+  adminTickets: (status?: string) =>
+    request(`/api/admin/tickets${status ? `?status=${status}` : ''}`),
+  adminResolveTicket: (ticketId: number) =>
+    request(`/api/admin/tickets/${ticketId}/resolve`, { method: 'PATCH' }),
 };

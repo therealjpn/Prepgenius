@@ -6,6 +6,7 @@ import { PaymentModule } from './payment/payment.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { UserModule } from './user/user.module';
 import { ReferralModule } from './referral/referral.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { ReferralModule } from './referral/referral.module';
     LeaderboardModule,
     UserModule,
     ReferralModule,
+    AdminModule,
   ],
 })
 export class AppModule {}

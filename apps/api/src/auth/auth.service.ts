@@ -19,6 +19,7 @@ export class AuthService {
       fullName: user.fullName,
       avatarUrl: user.avatarUrl,
       isPaid: user.isPaid,
+      isAdmin: user.isAdmin,
       referralCode: user.referralCode,
       createdAt: user.createdAt,
     };
@@ -94,6 +95,11 @@ export class AuthService {
       }
     }
 
+    // Block banned users
+    if (user.isBanned) {
+      throw new UnauthorizedException('Your account has been suspended. Contact support.');
+    }
+
     // Apply referral code for new users
     if (isNewUser && data.referralCode) {
       await this.referralService.applyReferralCode(user.id, data.referralCode);
@@ -105,6 +111,7 @@ export class AuthService {
   async getMe(userId: number) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException('User not found');
+    if (user.isBanned) throw new UnauthorizedException('Your account has been suspended.');
     return { user: this.sanitizeUser(user) };
   }
 }

@@ -13,6 +13,7 @@ export function Navbar() {
     { href: '/subjects', label: 'Practice' },
     { href: '/leaderboard', label: 'Leaderboard' },
     { href: '/profile', label: 'Profile' },
+    ...((user as any)?.isAdmin ? [{ href: '/admin', label: '🛡️ Admin' }] : []),
   ];
 
   return (

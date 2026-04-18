@@ -15,6 +15,8 @@ model User {
   googleId     String?       @unique @map("google_id")
   avatarUrl    String?       @map("avatar_url")
   isPaid       Boolean       @default(false) @map("is_paid")
+  isBanned     Boolean       @default(false) @map("is_banned")
+  isAdmin      Boolean       @default(false) @map("is_admin")
   paymentRef   String?       @map("payment_ref")
   paidAt       DateTime?     @map("paid_at")
   referralCode String?       @unique @map("referral_code")
@@ -31,8 +33,25 @@ model User {
   wallet       GeniuscoinWallet?
   referralRewards ReferralReward[] @relation("ReferrerRewards")
   referredRewards ReferralReward[] @relation("ReferredRewards")
+  supportTickets  SupportTicket[]
 
   @@map("users")
+}
+
+model SupportTicket {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
+  subject    String
+  message    String
+  status     String   @default("open")
+  createdAt  DateTime @default(now()) @map("created_at")
+  resolvedAt DateTime? @map("resolved_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@map("support_tickets")
 }
 
 model GeniuscoinWallet {
@@ -113,7 +132,7 @@ model Payment {
   amount     Int
   currency   String    @default("NGN")
   status     String    @default("pending")
-  provider   String    @default("paystack")
+  provider   String    @default("squad")
   metadata   String?
   createdAt  DateTime  @default(now()) @map("created_at")
   verifiedAt DateTime? @map("verified_at")
