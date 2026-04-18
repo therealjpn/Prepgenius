@@ -82,7 +82,13 @@ export function LoginForm() {
         </div>
 
         {error && <div className="auth-error">{error}</div>}
-        {loading && <p style={{ textAlign: 'center', color: 'var(--text-dim)' }}>Signing in...</p>}
+        {loading && (
+          <div style={{ textAlign: 'center', padding: '16px 0' }}>
+            <div className="spinner" style={{ margin: '0 auto 12px' }} />
+            <p style={{ color: 'var(--text-bright)', fontWeight: 600, marginBottom: 4 }}>Signing you in...</p>
+            <p style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>This may take a moment on first visit</p>
+          </div>
+        )}
 
         <div style={{ display: 'flex', justifyContent: 'center', margin: '24px 0' }}>
           <div ref={googleBtnRef} />
