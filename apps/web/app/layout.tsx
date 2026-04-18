@@ -9,7 +9,7 @@ import { Footer } from '@/components/Footer';
 const inter = Inter({ subsets: ['latin'], weight: ['300','400','500','600','700','800','900'] });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://prepgenie.onrender.com'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://prepgenie.xyz'),
   title: { default: 'PrepGenie — WAEC & NECO Past Questions | Ace Your Exams', template: '%s | PrepGenie' },
   description: 'Practice with 20,000+ authentic WAEC & NECO past questions. Instant grading, detailed explanations, and weekly leaderboard rewards. Built for Nigerian students.',
   keywords: ['WAEC past questions', 'NECO past questions', 'WAEC past questions and answers', 'Nigerian exam preparation', 'SSCE past questions', 'WAEC Mathematics', 'WAEC English', 'JAMB past questions', 'PrepGenie', 'exam prep Nigeria'],
@@ -39,7 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               '@type': 'EducationalOrganization',
               name: 'PrepGenie',
               description: 'Nigeria\'s premier WAEC & NECO exam preparation platform with 20,000+ past questions.',
-              url: process.env.NEXT_PUBLIC_SITE_URL || 'https://prepgenie.onrender.com',
+              url: process.env.NEXT_PUBLIC_SITE_URL || 'https://prepgenie.xyz',
               areaServed: { '@type': 'Country', name: 'Nigeria' },
               sameAs: [],
             }),

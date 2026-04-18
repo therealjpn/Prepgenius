@@ -14,7 +14,7 @@ async function bootstrap() {
         'http://localhost:3001',
       ].filter(Boolean);
       // Allow requests with no origin (server-to-server, curl, etc.)
-      if (!origin || allowed.includes(origin) || origin.endsWith('.onrender.com')) {
+      if (!origin || allowed.includes(origin) || origin.endsWith('.onrender.com') || origin.endsWith('prepgenie.xyz')) {
         callback(null, true);
       } else {
         callback(null, true); // Allow all in early stage — tighten later

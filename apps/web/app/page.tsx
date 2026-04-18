@@ -47,7 +47,7 @@ export default function HomePage() {
             provider: {
               '@type': 'Organization',
               name: 'PrepGenie',
-              sameAs: 'https://prepgenie.onrender.com',
+              sameAs: 'https://prepgenie.xyz',
             },
             offers: {
               '@type': 'Offer',
