@@ -27,9 +27,9 @@ async function bootstrap() {
   await app.listen(port);
 
   const token = process.env.ALOC_ACCESS_TOKEN;
-  const paystack = process.env.PAYSTACK_SECRET_KEY;
+  const squad = process.env.SQUAD_SECRET_KEY;
   console.log(`\n🇳🇬 PrepGenius API running on port ${port}`);
   console.log(`   ALOC: ${token ? '✅ Connected' : '⚠️ Not configured'}`);
-  console.log(`   Paystack: ${paystack ? '✅ Configured' : '⚠️ Test Mode'}\n`);
+  console.log(`   Squad: ${squad ? '✅ Configured' : '⚠️ Demo Mode'}\n`);
 }
 bootstrap();
