@@ -174,23 +174,48 @@ export class AdminService {
     });
   }
 
-  async resolveTicket(ticketId: number) {
+  async resolveTicket(ticketId: number, reply?: string) {
     const ticket = await this.prisma.supportTicket.findUnique({ where: { id: ticketId } });
     if (!ticket) throw new NotFoundException('Ticket not found');
 
     await this.prisma.supportTicket.update({
       where: { id: ticketId },
-      data: { status: 'resolved', resolvedAt: new Date() },
+      data: {
+        status: 'resolved',
+        resolvedAt: new Date(),
+        ...(reply ? { adminReply: reply } : {}),
+      },
     });
 
     this.logger.log(`✅ Ticket #${ticketId} resolved`);
     return { ticketId, status: 'resolved' };
   }
 
-  // ── Create Support Ticket (for users) ────────────────────────
+  async replyTicket(ticketId: number, reply: string) {
+    const ticket = await this.prisma.supportTicket.findUnique({ where: { id: ticketId } });
+    if (!ticket) throw new NotFoundException('Ticket not found');
+
+    return this.prisma.supportTicket.update({
+      where: { id: ticketId },
+      data: { adminReply: reply },
+    });
+  }
+
+  // ── User-Facing Ticket Methods ───────────────────────────────
   async createTicket(userId: number, subject: string, message: string) {
     return this.prisma.supportTicket.create({
       data: { userId, subject, message },
+    });
+  }
+
+  async getUserTickets(userId: number) {
+    return this.prisma.supportTicket.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true, subject: true, message: true, adminReply: true,
+        status: true, createdAt: true, resolvedAt: true,
+      },
     });
   }
 }

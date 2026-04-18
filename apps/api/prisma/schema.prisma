@@ -43,6 +43,7 @@ model SupportTicket {
   userId     Int      @map("user_id")
   subject    String
   message    String
+  adminReply String?  @map("admin_reply")
   status     String   @default("open")
   createdAt  DateTime @default(now()) @map("created_at")
   resolvedAt DateTime? @map("resolved_at")

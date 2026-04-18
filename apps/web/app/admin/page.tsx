@@ -25,6 +25,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [metricsLoading, setMetricsLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [replyText, setReplyText] = useState<Record<number, string>>({});
 
   const fetchMetrics = useCallback(async (p: string) => {
     setMetricsLoading(true);
@@ -94,6 +95,18 @@ export default function AdminPage() {
       await api.adminResolveTicket(ticketId);
       setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: 'resolved' } : t));
       setMetrics((prev: any) => prev ? { ...prev, openTickets: Math.max(0, prev.openTickets - 1) } : prev);
+    } catch (err: any) { alert(err.message); }
+    finally { setActionLoading(null); }
+  };
+
+  const handleReply = async (ticketId: number) => {
+    const reply = replyText[ticketId]?.trim();
+    if (!reply) return;
+    setActionLoading(ticketId);
+    try {
+      await api.adminReplyTicket(ticketId, reply);
+      setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, adminReply: reply } : t));
+      setReplyText(prev => ({ ...prev, [ticketId]: '' }));
     } catch (err: any) { alert(err.message); }
     finally { setActionLoading(null); }
   };
@@ -296,19 +309,36 @@ export default function AdminPage() {
                         <StatusBadge text={t.status} color={t.status === 'open' ? '#f59e0b' : '#10b981'} />
                       </div>
                       <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', margin: '0 0 6px' }}>{t.message}</p>
+                      {t.adminReply && (
+                        <div style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(139,92,246,0.08)', borderLeft: '3px solid #a78bfa', margin: '8px 0', fontSize: '0.85rem', color: 'var(--text)' }}>
+                          <span style={{ fontSize: '0.7rem', color: '#a78bfa', fontWeight: 600 }}>Your reply:</span><br/>{t.adminReply}
+                        </div>
+                      )}
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
                         👤 {t.user?.fullName} ({t.user?.email}) • {new Date(t.createdAt).toLocaleDateString('en-NG')}
                       </div>
                     </div>
-                    {t.status === 'open' && (
-                      <button onClick={() => handleResolve(t.id)} disabled={actionLoading === t.id}
-                        style={{
-                          padding: '6px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                          background: 'rgba(16,185,129,0.15)', color: '#10b981', fontWeight: 600, fontSize: '0.8rem',
-                        }}>
-                        {actionLoading === t.id ? '...' : '✅ Resolve'}
-                      </button>
-                    )}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 120 }}>
+                      {t.status === 'open' && !t.adminReply && (
+                        <div style={{ display: 'flex', gap: 4 }}>
+                          <input
+                            placeholder="Reply..." value={replyText[t.id] || ''}
+                            onChange={(e) => setReplyText(prev => ({ ...prev, [t.id]: e.target.value }))}
+                            style={{ flex: 1, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontSize: '0.75rem', outline: 'none', minWidth: 80 }}
+                          />
+                          <button onClick={() => handleReply(t.id)} disabled={actionLoading === t.id || !replyText[t.id]?.trim()}
+                            style={{ padding: '4px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', background: 'rgba(139,92,246,0.15)', color: '#a78bfa', fontWeight: 600, fontSize: '0.7rem' }}>
+                            💬
+                          </button>
+                        </div>
+                      )}
+                      {t.status === 'open' && (
+                        <button onClick={() => handleResolve(t.id)} disabled={actionLoading === t.id}
+                          style={{ padding: '6px 14px', borderRadius: 8, border: 'none', cursor: 'pointer', background: 'rgba(16,185,129,0.15)', color: '#10b981', fontWeight: 600, fontSize: '0.8rem' }}>
+                          {actionLoading === t.id ? '...' : '✅ Resolve'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}

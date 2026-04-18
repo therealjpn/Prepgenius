@@ -37,7 +37,12 @@ export class AdminController {
   }
 
   @Patch('tickets/:id/resolve')
-  resolveTicket(@Param('id', ParseIntPipe) id: number) {
-    return this.adminService.resolveTicket(id);
+  resolveTicket(@Param('id', ParseIntPipe) id: number, @Body() body?: { reply?: string }) {
+    return this.adminService.resolveTicket(id, body?.reply);
+  }
+
+  @Patch('tickets/:id/reply')
+  replyTicket(@Param('id', ParseIntPipe) id: number, @Body() body: { reply: string }) {
+    return this.adminService.replyTicket(id, body.reply);
   }
 }

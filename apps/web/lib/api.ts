@@ -72,6 +72,13 @@ export const api = {
     request(`/api/admin/users/${userId}/toggle-ban`, { method: 'PATCH' }),
   adminTickets: (status?: string) =>
     request(`/api/admin/tickets${status ? `?status=${status}` : ''}`),
-  adminResolveTicket: (ticketId: number) =>
-    request(`/api/admin/tickets/${ticketId}/resolve`, { method: 'PATCH' }),
+  adminResolveTicket: (ticketId: number, reply?: string) =>
+    request(`/api/admin/tickets/${ticketId}/resolve`, { method: 'PATCH', body: JSON.stringify({ reply }) }),
+  adminReplyTicket: (ticketId: number, reply: string) =>
+    request(`/api/admin/tickets/${ticketId}/reply`, { method: 'PATCH', body: JSON.stringify({ reply }) }),
+
+  // Support (user-facing)
+  createTicket: (subject: string, message: string) =>
+    request('/api/support/tickets', { method: 'POST', body: JSON.stringify({ subject, message }) }),
+  getMyTickets: () => request('/api/support/tickets'),
 };

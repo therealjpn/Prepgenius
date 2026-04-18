@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/lib/auth';
 import { Navbar } from '@/components/Navbar';
+import { ReferralPopup } from '@/components/ReferralPopup';
 
 const inter = Inter({ subsets: ['latin'], weight: ['300','400','500','600','700','800','900'] });
 
@@ -48,6 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthProvider>
           <Navbar />
           <main>{children}</main>
+          <ReferralPopup />
         </AuthProvider>
       </body>
     </html>
