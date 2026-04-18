@@ -11,7 +11,7 @@ import { ReferralModule } from '../referral/referral.module';
     PassportModule,
     ReferralModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'prepgenius-secret-change-in-production',
+      secret: process.env.JWT_SECRET || 'prepgenie-secret-change-in-production',
       signOptions: { expiresIn: '30d' },
     }),
   ],

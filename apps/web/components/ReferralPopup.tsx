@@ -6,7 +6,7 @@ import { api } from '@/lib/api';
 const REFERRAL_MESSAGES = [
   { emoji: '🔥', title: 'You\'re on fire!', subtitle: 'Share your link & earn ₦200 per friend who joins!' },
   { emoji: '💰', title: 'Free money is waiting!', subtitle: 'Every friend = 1 Geniuscoin (₦200). It\'s that simple.' },
-  { emoji: '🚀', title: 'Help a friend, get rewarded!', subtitle: 'Share PrepGenius & earn when they pay. Win-win!' },
+  { emoji: '🚀', title: 'Help a friend, get rewarded!', subtitle: 'Share PrepGenie & earn when they pay. Win-win!' },
   { emoji: '🎯', title: '1 share = ₦200 potential!', subtitle: 'Your classmates need this. Send them your link!' },
   { emoji: '⚡', title: 'Unlock your earnings!', subtitle: 'Top referrers earn thousands monthly. Start now!' },
   { emoji: '🏆', title: 'Challenge: Share with 5 friends!', subtitle: 'That\'s ₦1,000 in Geniuscoins if they all join!' },
@@ -92,7 +92,7 @@ export function ReferralPopup() {
   };
 
   const handleShare = (platform: typeof SHARE_PLATFORMS[0]) => {
-    const shareText = `🎓 I use PrepGenius to practice WAEC & NECO past questions. It's amazing! Join me and get ahead of your exams:`;
+    const shareText = `🎓 I use PrepGenie to practice WAEC & NECO past questions. It's amazing! Join me and get ahead of your exams:`;
     window.open(platform.getUrl(referralLink, shareText), '_blank', 'width=600,height=400');
   };
 

@@ -21,8 +21,8 @@ export function Navbar() {
     <nav className="navbar">
       <div className="nav-inner">
         <Link href="/" className="nav-brand">
-          <Image src="/logo.png" alt="PrepGenius" width={32} height={32} style={{ borderRadius: 6 }} />
-          Prep<span>Genius</span>
+          <Image src="/logo.png" alt="PrepGenie" width={32} height={32} style={{ borderRadius: 6 }} />
+          Prep<span>Genie</span>
         </Link>
         <div className="nav-links">
           {links.map(l => (

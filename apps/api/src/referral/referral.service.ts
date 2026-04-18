@@ -41,7 +41,7 @@ export class ReferralService {
       await this.prisma.user.update({ where: { id: userId }, data: { referralCode: code } });
       user = { ...user!, referralCode: code };
     }
-    const siteUrl = process.env.FRONTEND_URL || 'https://prepgenius-web.onrender.com';
+    const siteUrl = process.env.FRONTEND_URL || 'https://prepgenie-web.onrender.com';
     return {
       referralCode: user.referralCode,
       referralLink: `${siteUrl}/login?ref=${user.referralCode}`,

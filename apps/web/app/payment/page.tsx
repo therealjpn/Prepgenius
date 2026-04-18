@@ -69,7 +69,7 @@ export default function PaymentPage() {
         pass_charge: false,
         metadata: {
           userId: user.id,
-          plan: 'prepgenius-lifetime',
+          plan: 'prepgenie-lifetime',
         },
       });
 

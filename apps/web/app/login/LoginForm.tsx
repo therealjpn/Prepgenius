@@ -76,8 +76,8 @@ export function LoginForm() {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
-          <Image src="/logo.png" alt="PrepGenius" width={56} height={56} style={{ borderRadius: 12, margin: '0 auto 12px' }} />
-          <h2>Welcome to PrepGenius</h2>
+          <Image src="/logo.png" alt="PrepGenie" width={56} height={56} style={{ borderRadius: 12, margin: '0 auto 12px' }} />
+          <h2>Welcome to PrepGenie</h2>
           <p>Sign in to start practicing</p>
         </div>
 

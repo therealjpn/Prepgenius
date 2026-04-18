@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 
-const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://prepgenius.onrender.com';
+const BASE = process.env.NEXT_PUBLIC_SITE_URL || 'https://prepgenie.onrender.com';
 
 const subjects = [
   'mathematics', 'english-language', 'biology', 'chemistry',

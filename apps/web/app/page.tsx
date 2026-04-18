@@ -2,18 +2,18 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'PrepGenius — WAEC & NECO Past Questions | Practice & Ace Your Exams',
+  title: 'PrepGenie — WAEC & NECO Past Questions | Practice & Ace Your Exams',
   description: 'Practice with 20,000+ authentic WAEC and NECO past questions and answers. Get instant grading, detailed explanations, and compete on the weekly leaderboard. Nigeria\'s #1 exam prep platform.',
   keywords: ['WAEC past questions', 'NECO past questions', 'WAEC past questions and answers', 'NECO past questions and answers', 'WAEC 2024', 'WAEC 2023', 'SSCE past questions', 'Nigerian exam preparation', 'WAEC Mathematics past questions', 'WAEC English past questions', 'WAEC Biology past questions', 'WAEC Chemistry past questions', 'WAEC Physics past questions'],
   alternates: { canonical: '/' },
 };
 
 const faqs = [
-  { q: 'What exams does PrepGenius cover?', a: 'PrepGenius covers WAEC (West African Examinations Council) and NECO (National Examinations Council) past questions across 8+ SSCE subjects including Mathematics, English Language, Biology, Chemistry, Physics, Economics, and Government.' },
+  { q: 'What exams does PrepGenie cover?', a: 'PrepGenie covers WAEC (West African Examinations Council) and NECO (National Examinations Council) past questions across 8+ SSCE subjects including Mathematics, English Language, Biology, Chemistry, Physics, Economics, and Government.' },
   { q: 'How many past questions are available?', a: 'We have over 20,000 authenticated past questions sourced from official WAEC and NECO examination archives spanning from 2015 to 2024.' },
-  { q: 'How much does PrepGenius cost?', a: 'PrepGenius costs a one-time payment of ₦2,000 for unlimited lifetime access to all subjects, past questions, detailed explanations, and the weekly leaderboard competition.' },
-  { q: 'Can I win rewards on PrepGenius?', a: 'Yes! The top 3 students on our weekly leaderboard win airtime rewards: 1st place gets ₦1,000, 2nd place gets ₦500, and 3rd place gets ₦300.' },
-  { q: 'Is PrepGenius available on mobile?', a: 'Yes, PrepGenius is fully responsive and works perfectly on phones, tablets, and computers. No app download required — just visit our website.' },
+  { q: 'How much does PrepGenie cost?', a: 'PrepGenie costs a one-time payment of ₦2,000 for unlimited lifetime access to all subjects, past questions, detailed explanations, and the weekly leaderboard competition.' },
+  { q: 'Can I win rewards on PrepGenie?', a: 'Yes! The top 3 students on our weekly leaderboard win airtime rewards: 1st place gets ₦1,000, 2nd place gets ₦500, and 3rd place gets ₦300.' },
+  { q: 'Is PrepGenie available on mobile?', a: 'Yes, PrepGenie is fully responsive and works perfectly on phones, tablets, and computers. No app download required — just visit our website.' },
 ];
 
 export default function HomePage() {
@@ -46,8 +46,8 @@ export default function HomePage() {
             description: 'Comprehensive WAEC and NECO past questions practice platform with 20,000+ questions across 8+ subjects.',
             provider: {
               '@type': 'Organization',
-              name: 'PrepGenius',
-              sameAs: 'https://prepgenius.onrender.com',
+              name: 'PrepGenie',
+              sameAs: 'https://prepgenie.onrender.com',
             },
             offers: {
               '@type': 'Offer',
