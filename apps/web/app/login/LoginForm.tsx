@@ -103,6 +103,10 @@ export function LoginForm() {
         <div style={{ textAlign: 'center', marginTop: 20, color: 'var(--text-dim)', fontSize: '0.8rem', lineHeight: 1.6 }}>
           <p>🔒 Secure sign-in powered by Google</p>
           <p>We never store your password</p>
+          <p style={{ marginTop: 8, fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+            By signing in, you agree to our{' '}
+            <a href="/privacy" style={{ color: 'var(--green)', textDecoration: 'underline' }}>Privacy Policy</a>
+          </p>
         </div>
       </div>
     </div>

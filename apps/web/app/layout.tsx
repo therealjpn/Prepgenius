@@ -4,6 +4,7 @@ import './globals.css';
 import { AuthProvider } from '@/lib/auth';
 import { Navbar } from '@/components/Navbar';
 import { ReferralPopup } from '@/components/ReferralPopup';
+import { Footer } from '@/components/Footer';
 
 const inter = Inter({ subsets: ['latin'], weight: ['300','400','500','600','700','800','900'] });
 
@@ -45,10 +46,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body className={inter.className}>
+      <body className={inter.className} style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <AuthProvider>
           <Navbar />
-          <main>{children}</main>
+          <main style={{ flex: 1 }}>{children}</main>
+          <Footer />
           <ReferralPopup />
         </AuthProvider>
       </body>
