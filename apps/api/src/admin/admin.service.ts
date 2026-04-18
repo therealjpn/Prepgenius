@@ -13,15 +13,23 @@ export class AdminService {
 
   // ── Metrics ──────────────────────────────────────────────────
   async getMetrics() {
-    const [totalUsers, paidUsers, bannedUsers, openTickets, totalTickets] = await Promise.all([
+    const [totalUsers, paidUsers, bannedUsers, openTickets, totalTickets, revenueResult] = await Promise.all([
       this.prisma.user.count(),
       this.prisma.user.count({ where: { isPaid: true } }),
       this.prisma.user.count({ where: { isBanned: true } }),
       this.prisma.supportTicket.count({ where: { status: 'open' } }),
       this.prisma.supportTicket.count(),
+      this.prisma.payment.aggregate({
+        where: { status: 'success' },
+        _sum: { amount: true },
+        _count: true,
+      }),
     ]);
 
     const conversionRate = totalUsers > 0 ? ((paidUsers / totalUsers) * 100).toFixed(1) : '0.0';
+    // amount is stored in kobo, convert to naira
+    const totalRevenueKobo = revenueResult._sum.amount || 0;
+    const totalRevenueNgn = totalRevenueKobo / 100;
 
     // Signups grouped by day for last 7 days
     const sevenDaysAgo = new Date();
@@ -37,6 +45,8 @@ export class AdminService {
       paidUsers,
       bannedUsers,
       conversionRate: parseFloat(conversionRate),
+      totalRevenueNgn,
+      totalPayments: revenueResult._count,
       openTickets,
       totalTickets,
       recentSignups: recentUsers.length,

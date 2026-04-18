@@ -109,9 +109,11 @@ export default function AdminPage() {
       {tab === 'metrics' && metrics && (
         <div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 24 }}>
+            <MetricCard label="Total Revenue" value={`₦${(metrics.totalRevenueNgn || 0).toLocaleString()}`} icon="💵" color="#10b981" />
             <MetricCard label="Total Signups" value={metrics.totalUsers} icon="👥" color="var(--green-light)" />
             <MetricCard label="Paid Users" value={metrics.paidUsers} icon="💰" color="var(--gold)" />
             <MetricCard label="Conversion Rate" value={`${metrics.conversionRate}%`} icon="📈" color="#818cf8" />
+            <MetricCard label="Total Payments" value={metrics.totalPayments || 0} icon="🧾" color="#a78bfa" />
             <MetricCard label="Banned Users" value={metrics.bannedUsers} icon="🚫" color="#ef4444" />
             <MetricCard label="Open Tickets" value={metrics.openTickets} icon="🎫" color="#f59e0b" />
             <MetricCard label="Recent Signups (7d)" value={metrics.recentSignups} icon="🆕" color="#06b6d4" />
