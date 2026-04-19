@@ -36,6 +36,21 @@ export function Navbar() {
             <div className="nav-user">
               <div className="nav-avatar">{user.fullName?.charAt(0).toUpperCase()}</div>
               <span style={{ color: 'var(--text)' }}>{user.fullName?.split(' ')[0]}</span>
+              {user.isPaid ? (
+                <span style={{
+                  padding: '2px 8px', borderRadius: 6, fontSize: '0.65rem', fontWeight: 700,
+                  background: 'linear-gradient(135deg, rgba(245,158,11,0.2), rgba(245,158,11,0.1))',
+                  border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b',
+                  letterSpacing: '0.02em',
+                }}>⚡ PRO</span>
+              ) : (
+                <Link href="/payment" style={{
+                  padding: '2px 8px', borderRadius: 6, fontSize: '0.65rem', fontWeight: 700,
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid var(--border)', color: 'var(--text-dim)',
+                  textDecoration: 'none', transition: 'all 0.2s',
+                }}>FREE</Link>
+              )}
               <button className="btn btn-sm btn-ghost" onClick={logout}>Logout</button>
             </div>
           ) : (
