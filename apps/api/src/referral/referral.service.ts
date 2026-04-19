@@ -253,8 +253,8 @@ export class ReferralService {
     return !recentReward;
   }
 
-  // ── Phone/network for payout ───────────────────────────────────
-  async updatePayoutInfo(userId: number, phone: string, network: string) {
+  // ── Phone/network/bank for payout ───────────────────────────────────
+  async updatePayoutInfo(userId: number, phone: string, network: string, bankName?: string, bankAccount?: string, accountName?: string) {
     const validNetworks = ['MTN', 'Airtel', 'Glo', '9mobile'];
     if (!validNetworks.includes(network)) {
       throw new BadRequestException(`Invalid network. Must be one of: ${validNetworks.join(', ')}`);
@@ -262,9 +262,16 @@ export class ReferralService {
     if (!phone || !/^0[789]\d{9}$/.test(phone)) {
       throw new BadRequestException('Invalid phone number. Must be 11 digits starting with 07, 08, or 09.');
     }
+    if (bankAccount && !/^\d{10}$/.test(bankAccount)) {
+      throw new BadRequestException('Invalid bank account number. Must be 10 digits.');
+    }
+    const data: any = { phone, network };
+    if (bankName !== undefined) data.bankName = bankName || null;
+    if (bankAccount !== undefined) data.bankAccount = bankAccount || null;
+    if (accountName !== undefined) data.accountName = accountName || null;
     await this.prisma.user.update({
       where: { id: userId },
-      data: { phone, network },
+      data,
     });
     return { message: 'Payout info updated successfully.' };
   }
@@ -334,6 +341,9 @@ export class ReferralService {
       payoutInfo: {
         phone: user?.phone || null,
         network: user?.network || null,
+        bankName: user?.bankName || null,
+        bankAccount: user?.bankAccount || null,
+        accountName: user?.accountName || null,
         payoutEligible,
         coinsNeeded,
         minPayoutCoins: this.MIN_PAYOUT_COINS,

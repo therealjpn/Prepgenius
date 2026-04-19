@@ -62,8 +62,8 @@ export const api = {
   getReferralList: () => request('/api/referral/list'),
   applyReferralCode: (referralCode: string) =>
     request('/api/referral/apply', { method: 'POST', body: JSON.stringify({ referralCode }) }),
-  updatePayoutInfo: (phone: string, network: string) =>
-    request('/api/referral/payout-info', { method: 'POST', body: JSON.stringify({ phone, network }) }),
+  updatePayoutInfo: (phone: string, network: string, bankName?: string, bankAccount?: string, accountName?: string) =>
+    request('/api/referral/payout-info', { method: 'POST', body: JSON.stringify({ phone, network, bankName, bankAccount, accountName }) }),
   getReferralLeaderboard: (month?: string) =>
     request(`/api/referral/leaderboard${month ? `?month=${month}` : ''}`),
 

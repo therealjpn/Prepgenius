@@ -32,8 +32,8 @@ export class ReferralController {
 
   @UseGuards(JwtAuthGuard)
   @Post('payout-info')
-  updatePayoutInfo(@Req() req: any, @Body() body: { phone: string; network: string }) {
-    return this.referralService.updatePayoutInfo(req.user.userId, body.phone, body.network);
+  updatePayoutInfo(@Req() req: any, @Body() body: { phone: string; network: string; bankName?: string; bankAccount?: string; accountName?: string }) {
+    return this.referralService.updatePayoutInfo(req.user.userId, body.phone, body.network, body.bankName, body.bankAccount, body.accountName);
   }
 
   @UseGuards(JwtAuthGuard)

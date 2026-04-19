@@ -12,6 +12,9 @@ export default function InvitePage() {
   const [copied, setCopied] = useState(false);
   const [phone, setPhone] = useState('');
   const [network, setNetwork] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [bankAccount, setBankAccount] = useState('');
+  const [accountName, setAccountName] = useState('');
   const [savingPhone, setSavingPhone] = useState(false);
   const [showMilestoneModal, setShowMilestoneModal] = useState(false);
   const [showStreakModal, setShowStreakModal] = useState(false);
@@ -27,6 +30,9 @@ export default function InvitePage() {
         setDashboard(data);
         setPhone(data.payoutInfo?.phone || '');
         setNetwork(data.payoutInfo?.network || '');
+        setBankName(data.payoutInfo?.bankName || '');
+        setBankAccount(data.payoutInfo?.bankAccount || '');
+        setAccountName(data.payoutInfo?.accountName || '');
 
         // Show gamified popup based on state
         const balance = data.wallet?.balance || 0;
@@ -70,7 +76,7 @@ export default function InvitePage() {
   const savePayoutInfo = async () => {
     setSavingPhone(true);
     try {
-      await api.updatePayoutInfo(phone, network);
+      await api.updatePayoutInfo(phone, network, bankName, bankAccount, accountName);
       showToast('Payout info saved! You\'re all set for payouts 💰', 'success');
       const data = await api.getReferralDashboard();
       setDashboard(data);
@@ -259,40 +265,112 @@ export default function InvitePage() {
           padding: 24, marginBottom: 24, borderRadius: 16,
           background: 'var(--bg-card)', border: '1px solid var(--border)',
         }}>
-          <h3 style={{ color: 'var(--text-bright)', margin: '0 0 4px', fontSize: '1.05rem', fontWeight: 800 }}>📱 How Do You Want Your Money?</h3>
-          <p style={{ color: 'var(--text-dim)', fontSize: '0.82rem', marginBottom: 16, margin: '0 0 16px' }}>
-            We pay out as <strong style={{ color: 'var(--green-light)' }}>airtime</strong> or <strong style={{ color: 'var(--green-light)' }}>cash transfer</strong> at month-end. Add your details to get paid.
+          <h3 style={{ color: 'var(--text-bright)', margin: '0 0 4px', fontSize: '1.05rem', fontWeight: 800 }}>💳 How Do You Want Your Money?</h3>
+          <p style={{ color: 'var(--text-dim)', fontSize: '0.82rem', margin: '0 0 20px' }}>
+            Choose your preferred payout method. We pay out as <strong style={{ color: 'var(--green-light)' }}>airtime</strong> or <strong style={{ color: 'var(--green-light)' }}>bank transfer</strong> at month-end.
           </p>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+
+          {/* ── Airtime Section ── */}
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--gold)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>📱 Airtime Details</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-dim)', marginBottom: 4, fontWeight: 600 }}>Phone Number *</label>
+                <input
+                  type="tel" value={phone} onChange={e => setPhone(e.target.value)}
+                  placeholder="08012345678"
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', outline: 'none' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-dim)', marginBottom: 4, fontWeight: 600 }}>Network *</label>
+                <select
+                  value={network} onChange={e => setNetwork(e.target.value)}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', outline: 'none' }}
+                >
+                  <option value="">Select network</option>
+                  <option value="MTN">MTN</option>
+                  <option value="Airtel">Airtel</option>
+                  <option value="Glo">Glo</option>
+                  <option value="9mobile">9mobile</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Bank Transfer Section ── */}
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--green-light)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>🏦 Bank Transfer Details <span style={{ fontWeight: 400, textTransform: 'none', opacity: 0.7 }}>(optional)</span></div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-dim)', marginBottom: 4, fontWeight: 600 }}>Bank Name</label>
+                <select
+                  value={bankName} onChange={e => setBankName(e.target.value)}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', outline: 'none' }}
+                >
+                  <option value="">Select bank</option>
+                  <option value="Access Bank">Access Bank</option>
+                  <option value="Citibank">Citibank</option>
+                  <option value="Ecobank">Ecobank</option>
+                  <option value="Fidelity Bank">Fidelity Bank</option>
+                  <option value="First Bank">First Bank of Nigeria</option>
+                  <option value="FCMB">FCMB</option>
+                  <option value="GTBank">GTBank</option>
+                  <option value="Heritage Bank">Heritage Bank</option>
+                  <option value="Jaiz Bank">Jaiz Bank</option>
+                  <option value="Keystone Bank">Keystone Bank</option>
+                  <option value="Kuda Bank">Kuda Bank</option>
+                  <option value="Moniepoint">Moniepoint</option>
+                  <option value="Opay">Opay</option>
+                  <option value="Palmpay">Palmpay</option>
+                  <option value="Polaris Bank">Polaris Bank</option>
+                  <option value="Providus Bank">Providus Bank</option>
+                  <option value="Stanbic IBTC">Stanbic IBTC</option>
+                  <option value="Standard Chartered">Standard Chartered</option>
+                  <option value="Sterling Bank">Sterling Bank</option>
+                  <option value="Titan Trust Bank">Titan Trust Bank</option>
+                  <option value="UBA">UBA</option>
+                  <option value="Union Bank">Union Bank</option>
+                  <option value="Unity Bank">Unity Bank</option>
+                  <option value="VFD Microfinance">VFD Microfinance</option>
+                  <option value="Wema Bank">Wema Bank</option>
+                  <option value="Zenith Bank">Zenith Bank</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-dim)', marginBottom: 4, fontWeight: 600 }}>Account Number</label>
+                <input
+                  type="text" value={bankAccount} onChange={e => setBankAccount(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  placeholder="0123456789"
+                  maxLength={10}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', outline: 'none' }}
+                />
+              </div>
+            </div>
             <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-dim)', marginBottom: 4, fontWeight: 600 }}>Phone Number</label>
+              <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-dim)', marginBottom: 4, fontWeight: 600 }}>Account Name</label>
               <input
-                type="tel" value={phone} onChange={e => setPhone(e.target.value)}
-                placeholder="08012345678"
+                type="text" value={accountName} onChange={e => setAccountName(e.target.value)}
+                placeholder="John Doe"
                 style={{ width: '100%', padding: '10px 14px', borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', outline: 'none' }}
               />
             </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-dim)', marginBottom: 4, fontWeight: 600 }}>Network</label>
-              <select
-                value={network} onChange={e => setNetwork(e.target.value)}
-                style={{ width: '100%', padding: '10px 14px', borderRadius: 10, background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.85rem', outline: 'none' }}
-              >
-                <option value="">Select network</option>
-                <option value="MTN">MTN</option>
-                <option value="Airtel">Airtel</option>
-                <option value="Glo">Glo</option>
-                <option value="9mobile">9mobile</option>
-              </select>
-            </div>
           </div>
+
           <button className="btn btn-primary btn-sm" onClick={savePayoutInfo} disabled={savingPhone || !phone || !network} style={{ width: '100%' }}>
             {savingPhone ? 'Saving...' : payoutInfo?.phone ? '✅ Update Payout Info' : '💸 Save & Get Paid'}
           </button>
+
+          {/* Saved confirmation */}
           {payoutInfo?.phone && (
-            <div style={{ marginTop: 8, fontSize: '0.78rem', color: 'var(--green-light)', textAlign: 'center' }}>
-              ✅ Saved: {payoutInfo.phone} ({payoutInfo.network}) — Ready for payout
+            <div style={{ marginTop: 12, padding: '12px 16px', borderRadius: 10, background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.15)' }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--green-light)', fontWeight: 600, marginBottom: 4 }}>✅ Payout info saved — you&apos;re all set!</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+                📱 Airtime: {payoutInfo.phone} ({payoutInfo.network})
+                {payoutInfo.bankAccount && (
+                  <><br/>🏦 Bank: {payoutInfo.bankName} — {payoutInfo.bankAccount} ({payoutInfo.accountName})</>
+                )}
+              </div>
             </div>
           )}
         </div>
