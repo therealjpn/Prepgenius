@@ -30,8 +30,6 @@ export default function AdminPage() {
   const [replyText, setReplyText] = useState<Record<number, string>>({});
   const [referrals, setReferrals] = useState<any[]>([]);
   const [payouts, setPayouts] = useState<any[]>([]);
-  const [coinTxns, setCoinTxns] = useState<any[]>([]);
-  const [auditLogs, setAuditLogs] = useState<any[]>([]);
 
   const fetchMetrics = useCallback(async (p: string) => {
     setMetricsLoading(true);
