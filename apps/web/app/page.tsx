@@ -1,8 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
-
-const AnimatedGenie = dynamic(() => import('@/components/AnimatedGenie').then(m => ({ default: m.AnimatedGenie })), { ssr: false });
+import { GenieWrapper } from '@/components/GenieWrapper';
 
 export const metadata: Metadata = {
   title: 'PrepGenie — WAEC & NECO Past Questions | Practice & Ace Your Exams',
@@ -93,7 +91,7 @@ export default function HomePage() {
         </div>
 
         <div className="hero-genie">
-          <AnimatedGenie />
+          <GenieWrapper />
         </div>
       </div>
 
