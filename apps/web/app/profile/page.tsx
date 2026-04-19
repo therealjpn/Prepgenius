@@ -88,9 +88,9 @@ export default function ProfilePage() {
           }}>
             <span style={{ fontSize: 28 }}>🎁</span>
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 700, color: 'var(--green-light)', marginBottom: 2 }}>Invite Friends, Earn Genius Coins!</div>
+              <div style={{ fontWeight: 700, color: 'var(--green-light)', marginBottom: 2 }}>Invite Friends, Earn ₦200 Cash or Airtime!</div>
               <div style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>
-                Share your link — earn 200 Genius Coins per friend who joins and pays!
+                Each friend who pays = <strong style={{ color: 'var(--gold)' }}>₦200</strong> in your pocket — redeemable as cash or airtime 💰
               </div>
             </div>
             <button className="btn btn-sm btn-primary" onClick={copyLink}>Copy Link</button>
@@ -104,19 +104,19 @@ export default function ProfilePage() {
           border: '1px solid var(--border)',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
-            <h3 style={{ color: 'var(--text-bright)', margin: 0 }}>🪙 Geniuscoin Wallet</h3>
+            <h3 style={{ color: 'var(--text-bright)', margin: 0 }}>💰 Earnings Wallet</h3>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', background: 'var(--bg-card)', padding: '4px 10px', borderRadius: 8 }}>
-              1 coin = ₦{wallet?.coinValueNgn || 200}
+              1 coin = ₦1 • Cash or Airtime
             </span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12 }}>
             <div style={{ textAlign: 'center', padding: 16, borderRadius: 12, background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
               <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--gold)' }}>{wallet?.balance || 0}</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>Balance</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>Genius Coins</div>
             </div>
             <div style={{ textAlign: 'center', padding: 16, borderRadius: 12, background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
               <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--green-light)' }}>₦{wallet?.ngnEquivalent || 0}</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>NGN Value</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>Cash/Airtime Value</div>
             </div>
             <div style={{ textAlign: 'center', padding: 16, borderRadius: 12, background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
               <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text)' }}>{wallet?.totalEarned || 0}</div>
@@ -149,7 +149,7 @@ export default function ProfilePage() {
             </button>
           </div>
           <p style={{ marginTop: 8, fontSize: '0.8rem', color: 'var(--text-dim)' }}>
-            Share this link. When someone signs up and pays, you earn 200 Genius Coins (₦200 airtime)!
+            Each friend who signs up and pays = <strong style={{ color: 'var(--gold)' }}>₦200 cash or airtime</strong> for you. No limits.
           </p>
         </div>
 
@@ -162,7 +162,7 @@ export default function ProfilePage() {
           {referrals.length === 0 ? (
             <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-dim)' }}>
               <div style={{ fontSize: 32, marginBottom: 8 }}>🤝</div>
-              <p>No referrals yet. Share your link to start earning!</p>
+              <p>No referrals yet — share your link to start earning ₦200 per friend!</p>
             </div>
           ) : (
             <div style={{ overflow: 'auto' }}>
