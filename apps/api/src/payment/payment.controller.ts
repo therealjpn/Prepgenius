@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Req, Headers } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -17,4 +17,10 @@ export class PaymentController {
   @UseGuards(JwtAuthGuard)
   @Get('status')
   status(@Req() req: any) { return this.paymentService.status(req.user.userId); }
+
+  // Squad webhook — no auth guard (Squad calls this directly)
+  @Post('webhook')
+  webhook(@Body() body: any, @Headers('x-squad-encrypted-body') signature: string) {
+    return this.paymentService.handleWebhook(body, signature);
+  }
 }
