@@ -75,6 +75,28 @@ export const api = {
     request(`/api/admin/users/${userId}/toggle-paid`, { method: 'PATCH' }),
   adminToggleBan: (userId: number) =>
     request(`/api/admin/users/${userId}/toggle-ban`, { method: 'PATCH' }),
+  adminAdjustCoins: (userId: number, amount: number, reason: string) =>
+    request(`/api/admin/users/${userId}/adjust-coins`, { method: 'PATCH', body: JSON.stringify({ amount, reason }) }),
+  adminReferrals: (flagged?: boolean) =>
+    request(`/api/admin/referrals${flagged ? '?flagged=true' : ''}`),
+  adminApproveReferral: (id: number) =>
+    request(`/api/admin/referrals/${id}/approve`, { method: 'POST' }),
+  adminRejectReferral: (id: number, reason: string) =>
+    request(`/api/admin/referrals/${id}/reject`, { method: 'POST', body: JSON.stringify({ reason }) }),
+  adminCoinTransactions: (page?: number) =>
+    request(`/api/admin/coin-transactions?page=${page || 1}`),
+  adminPayouts: (month?: string, status?: string) =>
+    request(`/api/admin/payouts?month=${month || ''}&status=${status || ''}`),
+  adminRunBatch: (month?: string) =>
+    request('/api/admin/payouts/run-batch', { method: 'POST', body: JSON.stringify({ month }) }),
+  adminMarkPayoutPaid: (id: number) =>
+    request(`/api/admin/payouts/${id}/mark-paid`, { method: 'PATCH' }),
+  adminRejectPayout: (id: number, reason: string) =>
+    request(`/api/admin/payouts/${id}/reject`, { method: 'PATCH', body: JSON.stringify({ reason }) }),
+  adminBulkMarkPaid: (payoutIds: number[]) =>
+    request('/api/admin/payouts/bulk-mark-paid', { method: 'POST', body: JSON.stringify({ payoutIds }) }),
+  adminAuditLog: (page?: number) =>
+    request(`/api/admin/audit-log?page=${page || 1}`),
   adminTickets: (status?: string) =>
     request(`/api/admin/tickets${status ? `?status=${status}` : ''}`),
   adminResolveTicket: (ticketId: number, reply?: string) =>

@@ -17,7 +17,7 @@ export default function AdminPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { showToast } = useToast();
-  const [tab, setTab] = useState<'metrics' | 'users' | 'tickets'>('metrics');
+  const [tab, setTab] = useState<'metrics' | 'users' | 'referrals' | 'payouts' | 'tickets'>('metrics');
   const [period, setPeriod] = useState('all');
   const [metrics, setMetrics] = useState<any>(null);
   const [users, setUsers] = useState<any[]>([]);
@@ -28,6 +28,10 @@ export default function AdminPage() {
   const [metricsLoading, setMetricsLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [replyText, setReplyText] = useState<Record<number, string>>({});
+  const [referrals, setReferrals] = useState<any[]>([]);
+  const [payouts, setPayouts] = useState<any[]>([]);
+  const [coinTxns, setCoinTxns] = useState<any[]>([]);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
 
   const fetchMetrics = useCallback(async (p: string) => {
     setMetricsLoading(true);
@@ -44,15 +48,19 @@ export default function AdminPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [m, u, t] = await Promise.all([
+      const [m, u, t, r, p] = await Promise.all([
         api.adminMetrics(period),
         api.adminUsers(search),
         api.adminTickets(),
+        api.adminReferrals().catch(() => []),
+        api.adminPayouts().catch(() => []),
       ]);
       setMetrics(m);
       setUsers(u.users);
       setUserTotal(u.total);
       setTickets(t);
+      setReferrals(r);
+      setPayouts(p);
     } catch (err: any) {
       if (err.message?.includes('Admin')) router.push('/');
     } finally {
@@ -129,7 +137,7 @@ export default function AdminPage() {
           <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', marginTop: 4 }}>Manage users, view metrics & resolve support tickets</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          {(['metrics', 'users', 'tickets'] as const).map(t => (
+          {(['metrics', 'users', 'referrals', 'payouts', 'tickets'] as const).map(t => (
             <button key={t} onClick={() => setTab(t)}
               style={{
                 padding: '8px 16px', borderRadius: 10, fontSize: '0.85rem', fontWeight: 600, border: 'none', cursor: 'pointer',
@@ -137,7 +145,7 @@ export default function AdminPage() {
                 color: tab === t ? '#fff' : 'var(--text-dim)',
                 transition: 'all 0.2s',
               }}>
-              {t === 'metrics' ? '📊 Metrics' : t === 'users' ? '👥 Users' : '🎫 Tickets'}
+              {t === 'metrics' ? '📊' : t === 'users' ? '👥' : t === 'referrals' ? '🔗' : t === 'payouts' ? '💸' : '🎫'} {t.charAt(0).toUpperCase() + t.slice(1)}
             </button>
           ))}
         </div>
@@ -203,6 +211,8 @@ export default function AdminPage() {
             />
             <MetricCard label="Banned Users" value={metrics.bannedUsers} icon="🚫" color="#ef4444" />
             <MetricCard label="Open Tickets" value={metrics.openTickets} icon="🎫" color="#f59e0b" />
+            <MetricCard label="Active Referrals" value={metrics.totalReferrals || 0} icon="🔗" color="#06b6d4" />
+            <MetricCard label="Pending Payouts" value={metrics.pendingPayouts || 0} icon="💸" color="#a78bfa" />
           </div>
         </div>
       )}
@@ -344,6 +354,121 @@ export default function AdminPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Referrals Tab */}
+      {tab === 'referrals' && (
+        <div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: 16 }}>
+            {referrals.length} referral reward{referrals.length !== 1 ? 's' : ''}
+          </div>
+          {referrals.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 48, color: 'var(--text-dim)' }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>🔗</div>
+              <p>No referral rewards yet</p>
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto', borderRadius: 14, border: '1px solid var(--border)' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
+                <thead>
+                  <tr style={{ background: 'var(--bg-card)' }}>
+                    {['Referrer', 'Referred', 'Coins', 'Status', 'Date', 'Flag'].map(h => (
+                      <th key={h} style={{ padding: '12px 14px', textAlign: 'left', color: 'var(--text-dim)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', borderBottom: '1px solid var(--border)' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {referrals.map((r: any) => (
+                    <tr key={r.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: r.flagged ? 'rgba(239,68,68,0.05)' : 'transparent' }}>
+                      <td style={{ padding: '10px 14px', color: 'var(--text-bright)', fontSize: '0.85rem' }}>{r.referrer?.fullName}</td>
+                      <td style={{ padding: '10px 14px', color: 'var(--text-dim)', fontSize: '0.85rem' }}>{r.referredUser?.fullName}</td>
+                      <td style={{ padding: '10px 14px', color: 'var(--gold)', fontWeight: 700, fontSize: '0.85rem' }}>{r.coinsAwarded}🪙</td>
+                      <td style={{ padding: '10px 14px' }}><StatusBadge text={r.status} color={r.status === 'earned' ? '#10b981' : r.status === 'pending' ? '#f59e0b' : '#ef4444'} /></td>
+                      <td style={{ padding: '10px 14px', color: 'var(--text-dim)', fontSize: '0.8rem' }}>{new Date(r.createdAt).toLocaleDateString('en-NG')}</td>
+                      <td style={{ padding: '10px 14px' }}>
+                        {r.flagged ? <StatusBadge text={`⚠️ ${r.flagReason || 'Flagged'}`} color="#ef4444" /> : <span style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>—</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Payouts Tab */}
+      {tab === 'payouts' && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
+              {payouts.length} payout{payouts.length !== 1 ? 's' : ''}
+            </div>
+            <button className="btn btn-primary btn-sm" onClick={async () => {
+              if (!confirm('Run month-end batch? This will create payout records for all eligible users.')) return;
+              try {
+                const result = await api.adminRunBatch();
+                showToast(`Batch complete: ${result.pendingCount} payouts (₦${result.totalAirtime}), ${result.awaitingInfoCount} awaiting info`, 'success', 5000);
+                const p = await api.adminPayouts();
+                setPayouts(p);
+              } catch (err: any) { showToast(err.message, 'error'); }
+            }}>
+              📦 Run Month-End Batch
+            </button>
+          </div>
+          {payouts.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 48, color: 'var(--text-dim)' }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>💸</div>
+              <p>No payouts yet. Run a batch to generate.</p>
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto', borderRadius: 14, border: '1px solid var(--border)' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
+                <thead>
+                  <tr style={{ background: 'var(--bg-card)' }}>
+                    {['User', 'Phone', 'Network', 'Coins', 'Airtime', 'Status', 'Actions'].map(h => (
+                      <th key={h} style={{ padding: '12px 14px', textAlign: 'left', color: 'var(--text-dim)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', borderBottom: '1px solid var(--border)' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {payouts.map((p: any) => (
+                    <tr key={p.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      <td style={{ padding: '10px 14px', color: 'var(--text-bright)', fontSize: '0.85rem' }}>{p.user?.fullName}</td>
+                      <td style={{ padding: '10px 14px', color: 'var(--text-dim)', fontSize: '0.85rem' }}>{p.phone || '—'}</td>
+                      <td style={{ padding: '10px 14px', color: 'var(--text-dim)', fontSize: '0.85rem' }}>{p.network || '—'}</td>
+                      <td style={{ padding: '10px 14px', color: 'var(--gold)', fontWeight: 700, fontSize: '0.85rem' }}>{p.coins}🪙</td>
+                      <td style={{ padding: '10px 14px', color: 'var(--green-light)', fontWeight: 700, fontSize: '0.85rem' }}>₦{p.amountNgn?.toLocaleString()}</td>
+                      <td style={{ padding: '10px 14px' }}><StatusBadge text={p.status} color={p.status === 'paid' ? '#10b981' : p.status === 'pending' ? '#f59e0b' : p.status === 'awaiting_info' ? '#818cf8' : '#ef4444'} /></td>
+                      <td style={{ padding: '10px 14px' }}>
+                        {p.status === 'pending' && (
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <ActionBtn onClick={async () => {
+                              try {
+                                await api.adminMarkPayoutPaid(p.id);
+                                setPayouts(prev => prev.map(x => x.id === p.id ? { ...x, status: 'paid' } : x));
+                                showToast('Marked as paid', 'success');
+                              } catch (err: any) { showToast(err.message, 'error'); }
+                            }} loading={actionLoading === p.id} color="#10b981" label="✅ Paid" />
+                            <ActionBtn onClick={async () => {
+                              const reason = prompt('Rejection reason:');
+                              if (!reason) return;
+                              try {
+                                await api.adminRejectPayout(p.id, reason);
+                                setPayouts(prev => prev.map(x => x.id === p.id ? { ...x, status: 'rejected' } : x));
+                                showToast('Payout rejected — coins refunded', 'success');
+                              } catch (err: any) { showToast(err.message, 'error'); }
+                            }} loading={actionLoading === p.id} color="#ef4444" label="❌ Reject" />
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>

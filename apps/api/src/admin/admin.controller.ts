@@ -21,13 +21,72 @@ export class AdminController {
   }
 
   @Patch('users/:id/toggle-paid')
-  togglePaid(@Param('id', ParseIntPipe) id: number) {
-    return this.adminService.togglePaid(id);
+  togglePaid(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.adminService.togglePaid(id, req.user.userId);
   }
 
   @Patch('users/:id/toggle-ban')
-  toggleBan(@Param('id', ParseIntPipe) id: number) {
-    return this.adminService.toggleBan(id);
+  toggleBan(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.adminService.toggleBan(id, req.user.userId);
+  }
+
+  @Patch('users/:id/adjust-coins')
+  adjustCoins(@Param('id', ParseIntPipe) id: number, @Body() body: { amount: number; reason: string }, @Req() req: any) {
+    return this.adminService.adjustCoins(id, body.amount, body.reason, req.user.userId);
+  }
+
+  // ── Referrals ──
+  @Get('referrals')
+  getReferrals(@Query('flagged') flagged?: string) {
+    return this.adminService.getReferrals(flagged === 'true');
+  }
+
+  @Post('referrals/:id/approve')
+  approveReferral(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.adminService.approveReferral(id, req.user.userId);
+  }
+
+  @Post('referrals/:id/reject')
+  rejectReferral(@Param('id', ParseIntPipe) id: number, @Body() body: { reason: string }, @Req() req: any) {
+    return this.adminService.rejectReferral(id, body.reason, req.user.userId);
+  }
+
+  // ── Coin Transactions ──
+  @Get('coin-transactions')
+  getCoinTransactions(@Query('page') page?: string) {
+    return this.adminService.getCoinTransactions(page ? parseInt(page) : 1);
+  }
+
+  // ── Payouts ──
+  @Get('payouts')
+  getPayouts(@Query('month') month?: string, @Query('status') status?: string) {
+    return this.adminService.getPayouts(month, status);
+  }
+
+  @Post('payouts/run-batch')
+  runMonthlyBatch(@Body() body: { month?: string }, @Req() req: any) {
+    return this.adminService.runMonthlyBatch(req.user.userId, body?.month);
+  }
+
+  @Patch('payouts/:id/mark-paid')
+  markPayoutPaid(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.adminService.markPayoutPaid(id, req.user.userId);
+  }
+
+  @Patch('payouts/:id/reject')
+  rejectPayout(@Param('id', ParseIntPipe) id: number, @Body() body: { reason: string }, @Req() req: any) {
+    return this.adminService.rejectPayout(id, body.reason, req.user.userId);
+  }
+
+  @Post('payouts/bulk-mark-paid')
+  bulkMarkPaid(@Body() body: { payoutIds: number[] }, @Req() req: any) {
+    return this.adminService.bulkMarkPaid(body.payoutIds, req.user.userId);
+  }
+
+  // ── Audit Log ──
+  @Get('audit-log')
+  getAuditLog(@Query('page') page?: string) {
+    return this.adminService.getAuditLog(page ? parseInt(page) : 1);
   }
 
   // ── Support Tickets ──
