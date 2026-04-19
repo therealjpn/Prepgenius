@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 const faqs = [
   { q: 'What exams does PrepGenie cover?', a: 'PrepGenie covers WAEC (West African Examinations Council) and NECO (National Examinations Council) past questions across 8+ SSCE subjects including Mathematics, English Language, Biology, Chemistry, Physics, Economics, and Government.' },
   { q: 'How many past questions are available?', a: 'We have over 20,000 authenticated past questions sourced from official WAEC and NECO examination archives spanning from 2015 to 2024.' },
-  { q: 'How much does PrepGenie cost?', a: 'PrepGenie costs a one-time payment of ₦2,000 for unlimited lifetime access to all subjects, past questions, detailed explanations, and the weekly leaderboard competition.' },
+  { q: 'How much does PrepGenie cost?', a: 'PrepGenie costs a one-time payment of ₦1,000 for unlimited lifetime access to all subjects, past questions, detailed explanations, and the weekly leaderboard competition.' },
   { q: 'Can I win rewards on PrepGenie?', a: 'Yes! The top 3 students on our weekly leaderboard win airtime rewards: 1st place gets ₦1,000, 2nd place gets ₦500, and 3rd place gets ₦300.' },
   { q: 'Is PrepGenie available on mobile?', a: 'Yes, PrepGenie is fully responsive and works perfectly on phones, tablets, and computers. No app download required — just visit our website.' },
 ];
@@ -51,7 +51,7 @@ export default function HomePage() {
             },
             offers: {
               '@type': 'Offer',
-              price: '2000',
+              price: '1000',
               priceCurrency: 'NGN',
               availability: 'https://schema.org/InStock',
             },
@@ -72,7 +72,7 @@ export default function HomePage() {
       </p>
 
       <div className="landing-price">
-        <div className="price">₦2,000</div>
+        <div className="price">₦1,000</div>
         <div className="detail">One-time payment • Unlimited access • All subjects</div>
       </div>
 

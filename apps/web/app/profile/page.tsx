@@ -88,9 +88,9 @@ export default function ProfilePage() {
           }}>
             <span style={{ fontSize: 28 }}>🎁</span>
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 700, color: 'var(--green-light)', marginBottom: 2 }}>Refer a Friend, Earn ₦200!</div>
+              <div style={{ fontWeight: 700, color: 'var(--green-light)', marginBottom: 2 }}>Invite Friends, Earn Genius Coins!</div>
               <div style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>
-                Share your link — earn 10% (₦200) instantly when they pay!
+                Share your link — earn 200 Genius Coins per friend who joins and pays!
               </div>
             </div>
             <button className="btn btn-sm btn-primary" onClick={copyLink}>Copy Link</button>
@@ -149,7 +149,7 @@ export default function ProfilePage() {
             </button>
           </div>
           <p style={{ marginTop: 8, fontSize: '0.8rem', color: 'var(--text-dim)' }}>
-            Share this link. When someone signs up and pays ₦2,000, you earn 1 Geniuscoin (₦200)!
+            Share this link. When someone signs up and pays, you earn 200 Genius Coins (₦200 airtime)!
           </p>
         </div>
 
@@ -267,7 +267,7 @@ export default function ProfilePage() {
               padding: '12px 16px', borderRadius: 10, background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)',
             }}>
               Deleting your profile is <strong>permanent</strong>. You will lose your practice history and your{' '}
-              <strong>₦2,000 premium access will be forfeited without a refund</strong>.
+              <strong>₦1,000 premium access will be forfeited without a refund</strong>.
             </p>
             <p style={{ color: 'var(--text-dim)', fontSize: '0.8rem', marginBottom: 8, textAlign: 'center' }}>
               Type <strong style={{ color: '#ef4444' }}>DELETE</strong> to confirm:

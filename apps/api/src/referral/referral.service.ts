@@ -4,7 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 @Injectable()
 export class ReferralService {
   private readonly logger = new Logger(ReferralService.name);
-  private readonly COIN_VALUE_NGN = 200; // 1 Geniuscoin = 10% of ₦2,000
+  private readonly COIN_VALUE_NGN = 1; // 1 Genius Coin = ₦1 airtime
 
   constructor(private prisma: PrismaService) {}
 

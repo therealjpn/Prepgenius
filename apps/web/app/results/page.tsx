@@ -84,7 +84,7 @@ export default function ResultsPage() {
               </div>
             </div>
             <Link href="/login" className="btn btn-primary btn-lg" style={{ marginRight: 8 }}>
-              Sign Up Now — ₦2,000 Only
+              Sign Up Now — ₦1,000 Only
             </Link>
             <Link href="/leaderboard" className="btn btn-glass btn-lg">
               🏆 View Leaderboard

@@ -63,7 +63,7 @@ export default function PrivacyPolicyPage() {
           <p style={styles.body}>We <strong>do not sell or rent</strong> your personal data. We only share data with:</p>
           <ul style={styles.list}>
             <li><strong>Google:</strong> To facilitate the OAuth login process.</li>
-            <li><strong>Payment Processors:</strong> To verify your ₦2,000 transaction.</li>
+            <li><strong>Payment Processors:</strong> To verify your ₦1,000 transaction.</li>
             <li><strong>Cloud Hosting Providers:</strong> To securely store our database.</li>
           </ul>
         </Section>
@@ -94,7 +94,7 @@ export default function PrivacyPolicyPage() {
           </p>
           <p style={styles.note}>
             <strong>Note on Refunds:</strong> As stated in our Terms and Conditions, all sales are final.
-            Data deletion does not entitle the user to a refund of the ₦2,000 access fee.
+            Data deletion does not entitle the user to a refund of the ₦1,000 access fee.
           </p>
         </Section>
 

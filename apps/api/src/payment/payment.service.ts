@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ReferralService } from '../referral/referral.service';
 import { v4 as uuidv4 } from 'uuid';
 
-const PAYMENT_AMOUNT = 2000; // NGN 2,000
+const PAYMENT_AMOUNT = 1000; // NGN 1,000
 const SQUAD_SECRET = process.env.SQUAD_SECRET_KEY || '';
 const SQUAD_PUBLIC = process.env.SQUAD_PUBLIC_KEY || '';
 
@@ -16,8 +16,8 @@ export class PaymentService {
     private referralService: ReferralService,
   ) {
     // Log config on startup for debugging
-    this.logger.log(`Squad config — Secret key starts with: ${SQUAD_SECRET.substring(0, 12)}...`);
-    this.logger.log(`Squad config — Public key starts with: ${SQUAD_PUBLIC.substring(0, 12)}...`);
+    this.logger.log(`Squad config — Secret key: ${SQUAD_SECRET ? 'configured' : 'NOT SET'}`);
+    this.logger.log(`Squad config — Public key: ${SQUAD_PUBLIC ? 'configured' : 'NOT SET'}`);
     this.logger.log(`Squad config — NODE_ENV: ${process.env.NODE_ENV}`);
   }
 

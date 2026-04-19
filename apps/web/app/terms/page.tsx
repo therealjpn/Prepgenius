@@ -35,7 +35,7 @@ export default function TermsPage() {
 
         <Section num="2" title="Payments and No-Refund Policy">
           <ul style={S.list}>
-            <li><strong>Access Fee:</strong> A one-time payment of ₦2,000 grants you unlimited access to all subjects and past questions.</li>
+            <li><strong>Access Fee:</strong> A one-time payment of ₦1,000 grants you unlimited access to all subjects and past questions.</li>
             <li><strong>No Refunds:</strong> Since Prep Genius provides instant access to digital educational content, all payments
               are final and non-refundable. By completing your purchase, you acknowledge that you waive the right to a refund once
               the digital content has been accessed.</li>

@@ -173,7 +173,7 @@ export default function PaymentPage() {
 
         <div className="payment-price">
           <span className="payment-currency">₦</span>
-          <span className="payment-amount">2,000</span>
+          <span className="payment-amount">1,000</span>
           <span className="payment-period">one-time payment</span>
         </div>
 
@@ -187,7 +187,7 @@ export default function PaymentPage() {
         </ul>
 
         <button className="btn btn-primary btn-lg btn-full" onClick={handlePay} disabled={loading}>
-          {loading ? 'Processing...' : 'Pay ₦2,000 Now'}
+          {loading ? 'Processing...' : 'Pay ₦1,000 Now'}
         </button>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 16 }}>

@@ -4,13 +4,13 @@ import { useAuth } from '@/lib/auth';
 import { api } from '@/lib/api';
 
 const REFERRAL_MESSAGES = [
-  { emoji: '🔥', title: 'You\'re on fire!', subtitle: 'Share your link & earn ₦200 per friend who joins!' },
-  { emoji: '💰', title: 'Free money is waiting!', subtitle: 'Every friend = 1 Geniuscoin (₦200). It\'s that simple.' },
-  { emoji: '🚀', title: 'Help a friend, get rewarded!', subtitle: 'Share PrepGenie & earn when they pay. Win-win!' },
-  { emoji: '🎯', title: '1 share = ₦200 potential!', subtitle: 'Your classmates need this. Send them your link!' },
-  { emoji: '⚡', title: 'Unlock your earnings!', subtitle: 'Top referrers earn thousands monthly. Start now!' },
-  { emoji: '🏆', title: 'Challenge: Share with 5 friends!', subtitle: 'That\'s ₦1,000 in Geniuscoins if they all join!' },
-  { emoji: '💎', title: 'Your link is your goldmine!', subtitle: 'Every share could earn you ₦200. Don\'t sleep on it!' },
+  { emoji: '🔥', title: 'You\'re on fire!', subtitle: 'Share your link & earn 200 Genius Coins per friend who joins!' },
+  { emoji: '💰', title: 'Free airtime is waiting!', subtitle: 'Every friend = 200 Genius Coins (₦200 airtime). It\'s that simple.' },
+  { emoji: '🚀', title: 'Help a friend, get rewarded!', subtitle: 'Share PrepGenie & earn coins when they pay. Win-win!' },
+  { emoji: '🎯', title: '1 share = 200 coins potential!', subtitle: 'Your classmates need this. Send them your link!' },
+  { emoji: '⚡', title: 'Unlock your rewards!', subtitle: 'Top referrers earn thousands in airtime monthly. Start now!' },
+  { emoji: '🏆', title: 'Challenge: Share with 5 friends!', subtitle: 'That\'s 1,000 Genius Coins (₦1,000 airtime) if they all join!' },
+  { emoji: '💎', title: 'Your link is your goldmine!', subtitle: 'Every share could earn you 200 coins. Don\'t sleep on it!' },
 ];
 
 const SHARE_PLATFORMS = [
@@ -182,7 +182,7 @@ export function ReferralPopup() {
             padding: '8px 14px', borderRadius: 10, background: 'rgba(129,140,248,0.1)',
             border: '1px solid rgba(129,140,248,0.2)', textAlign: 'center',
           }}>
-            <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#818cf8' }}>₦{(coins * 200).toLocaleString()}</div>
+            <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#818cf8' }}>₦{coins.toLocaleString()}</div>
             <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)' }}>Earned</div>
           </div>
         </div>
@@ -242,7 +242,7 @@ export function ReferralPopup() {
         </div>
 
         <p style={{ textAlign: 'center', fontSize: '0.7rem', color: 'var(--text-dim)' }}>
-          💡 Earn 1 Geniuscoin (₦200) for every friend who pays!
+          💡 Earn 200 Genius Coins (₦200 airtime) for every friend who pays!
         </p>
       </div>
 
