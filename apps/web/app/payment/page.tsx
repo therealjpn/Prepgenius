@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { useToast } from '@/components/Toast';
 
 declare global {
   interface Window { squad: any; }
@@ -13,6 +14,7 @@ export default function PaymentPage() {
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const router = useRouter();
+  const { showToast } = useToast();
 
   // Load Squad SDK
   useEffect(() => {
@@ -32,7 +34,7 @@ export default function PaymentPage() {
       if (data.alreadyPaid) { router.push('/subjects'); return; }
 
       if (!window.squad) {
-        alert('Payment gateway is loading. Please try again in a moment.');
+        showToast('Payment gateway is loading. Please try again in a moment.', 'warning');
         setLoading(false);
         return;
       }
@@ -53,7 +55,7 @@ export default function PaymentPage() {
               router.push('/subjects');
             }
           } catch {
-            alert('Payment received but verification pending. Refreshing...');
+            showToast('Payment received but verification pending. Refreshing...', 'info', 5000);
             window.location.reload();
           } finally {
             setVerifying(false);
@@ -76,7 +78,7 @@ export default function PaymentPage() {
       squadInstance.setup();
       squadInstance.open();
     } catch (err: any) {
-      alert(err.message);
+      showToast(err.message, 'error');
       setLoading(false);
     }
   };

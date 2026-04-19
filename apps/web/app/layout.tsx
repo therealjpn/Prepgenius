@@ -5,6 +5,7 @@ import { AuthProvider } from '@/lib/auth';
 import { Navbar } from '@/components/Navbar';
 import { ReferralPopup } from '@/components/ReferralPopup';
 import { Footer } from '@/components/Footer';
+import { ToastProvider } from '@/components/Toast';
 
 const inter = Inter({ subsets: ['latin'], weight: ['300','400','500','600','700','800','900'] });
 
@@ -48,10 +49,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={inter.className} style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <AuthProvider>
-          <Navbar />
-          <main style={{ flex: 1 }}>{children}</main>
-          <Footer />
-          <ReferralPopup />
+          <ToastProvider>
+            <Navbar />
+            <main style={{ flex: 1 }}>{children}</main>
+            <Footer />
+            <ReferralPopup />
+          </ToastProvider>
         </AuthProvider>
       </body>
     </html>

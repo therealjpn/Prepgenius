@@ -3,10 +3,12 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { api } from '@/lib/api';
+import { useToast } from '@/components/Toast';
 
 export default function SupportPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const { showToast } = useToast();
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -35,7 +37,7 @@ export default function SupportPage() {
       await api.createTicket(subject.trim(), message.trim());
       setSubject(''); setMessage(''); setShowForm(false);
       await fetchTickets();
-    } catch (err: any) { alert(err.message); }
+    } catch (err: any) { showToast(err.message, 'error'); }
     finally { setSubmitting(false); }
   };
 

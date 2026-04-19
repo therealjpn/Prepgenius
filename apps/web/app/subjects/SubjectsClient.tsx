@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+import { useToast } from '@/components/Toast';
 
 interface Subject {
   name: string; icon: string; color: string; years: string[];
@@ -18,6 +19,7 @@ export function SubjectsClient() {
   const [starting, setStarting] = useState(false);
   const { user } = useAuth();
   const router = useRouter();
+  const { showToast } = useToast();
 
   useEffect(() => {
     api.getSubjects().then(d => { setSubjects(d.subjects); setLoading(false); }).catch(() => setLoading(false));
@@ -30,7 +32,7 @@ export function SubjectsClient() {
       sessionStorage.setItem('pg_exam', JSON.stringify({ ...data, demo: true }));
       router.push('/exam');
     } catch (err: any) {
-      alert(err.message);
+      showToast(err.message, 'error');
     } finally {
       setStarting(false);
     }
@@ -47,7 +49,7 @@ export function SubjectsClient() {
       router.push('/exam');
     } catch (err: any) {
       if (err.message?.includes('Payment required')) router.push('/payment');
-      else alert(err.message);
+      else showToast(err.message, 'error');
     } finally {
       setStarting(false);
     }

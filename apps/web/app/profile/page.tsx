@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { api } from '@/lib/api';
+import { useToast } from '@/components/Toast';
 
 export default function ProfilePage() {
   const { user, loading: authLoading, logout } = useAuth();
@@ -14,6 +15,7 @@ export default function ProfilePage() {
   const [deleting, setDeleting] = useState(false);
   const [confirmText, setConfirmText] = useState('');
   const router = useRouter();
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (authLoading) return;
@@ -44,7 +46,7 @@ export default function ProfilePage() {
       logout();
       router.push('/');
     } catch (err: any) {
-      alert(err.message || 'Failed to delete profile');
+      showToast(err.message || 'Failed to delete profile', 'error');
       setDeleting(false);
     }
   };

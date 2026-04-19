@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { api } from '@/lib/api';
+import { useToast } from '@/components/Toast';
 
 const PERIODS = [
   { key: 'today', label: 'Today' },
@@ -15,6 +16,7 @@ const PERIODS = [
 export default function AdminPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const { showToast } = useToast();
   const [tab, setTab] = useState<'metrics' | 'users' | 'tickets'>('metrics');
   const [period, setPeriod] = useState('all');
   const [metrics, setMetrics] = useState<any>(null);
@@ -76,7 +78,7 @@ export default function AdminPage() {
       const result = await api.adminTogglePaid(userId);
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, isPaid: result.isPaid } : u));
       fetchMetrics(period); // Refresh metrics
-    } catch (err: any) { alert(err.message); }
+    } catch (err: any) { showToast(err.message, 'error'); }
     finally { setActionLoading(null); }
   };
 
@@ -85,7 +87,7 @@ export default function AdminPage() {
     try {
       const result = await api.adminToggleBan(userId);
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, isBanned: result.isBanned } : u));
-    } catch (err: any) { alert(err.message); }
+    } catch (err: any) { showToast(err.message, 'error'); }
     finally { setActionLoading(null); }
   };
 
@@ -95,7 +97,7 @@ export default function AdminPage() {
       await api.adminResolveTicket(ticketId);
       setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: 'resolved' } : t));
       setMetrics((prev: any) => prev ? { ...prev, openTickets: Math.max(0, prev.openTickets - 1) } : prev);
-    } catch (err: any) { alert(err.message); }
+    } catch (err: any) { showToast(err.message, 'error'); }
     finally { setActionLoading(null); }
   };
 
@@ -107,7 +109,7 @@ export default function AdminPage() {
       await api.adminReplyTicket(ticketId, reply);
       setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, adminReply: reply } : t));
       setReplyText(prev => ({ ...prev, [ticketId]: '' }));
-    } catch (err: any) { alert(err.message); }
+    } catch (err: any) { showToast(err.message, 'error'); }
     finally { setActionLoading(null); }
   };
 
