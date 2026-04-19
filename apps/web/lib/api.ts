@@ -62,6 +62,10 @@ export const api = {
   getReferralList: () => request('/api/referral/list'),
   applyReferralCode: (referralCode: string) =>
     request('/api/referral/apply', { method: 'POST', body: JSON.stringify({ referralCode }) }),
+  updatePayoutInfo: (phone: string, network: string) =>
+    request('/api/referral/payout-info', { method: 'POST', body: JSON.stringify({ phone, network }) }),
+  getReferralLeaderboard: (month?: string) =>
+    request(`/api/referral/leaderboard${month ? `?month=${month}` : ''}`),
 
   // Admin
   adminMetrics: (period?: string) => request(`/api/admin/metrics?period=${period || 'all'}`),

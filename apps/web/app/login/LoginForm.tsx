@@ -16,7 +16,10 @@ export function LoginForm() {
   const { user, setUser } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const referralCode = searchParams.get('ref') || '';
+  // Read ref from URL, then localStorage, then cookie (covers /join → OAuth flow)
+  const referralCode = searchParams.get('ref') 
+    || (typeof window !== 'undefined' ? localStorage.getItem('pg_referral_code') : null) 
+    || '';
 
   // Redirect if already logged in
   useEffect(() => {
@@ -36,6 +39,7 @@ export function LoginForm() {
         referralCode,
       });
       localStorage.setItem('pg_token', data.token);
+      localStorage.removeItem('pg_referral_code'); // Clean up after use
       setUser(data.user);
       router.push('/subjects');
     } catch (err: any) {

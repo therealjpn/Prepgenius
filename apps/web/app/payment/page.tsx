@@ -14,6 +14,7 @@ export default function PaymentPage() {
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [paymentData, setPaymentData] = useState<any>(null);
   const router = useRouter();
   const { showToast } = useToast();
 
@@ -54,6 +55,7 @@ export default function PaymentPage() {
         setPaymentSuccess(true);
         return;
       }
+      setPaymentData(data);
 
       if (!window.squad) {
         showToast('Payment gateway is loading. Please try again in a moment.', 'warning');
@@ -172,9 +174,23 @@ export default function PaymentPage() {
         <p style={{ color: 'var(--text-dim)', marginBottom: 24 }}>Get unlimited access to all WAEC & NECO past questions.</p>
 
         <div className="payment-price">
-          <span className="payment-currency">₦</span>
-          <span className="payment-amount">1,000</span>
-          <span className="payment-period">one-time payment</span>
+          {paymentData?.discount ? (
+            <>
+              <span className="payment-currency">₦</span>
+              <span className="payment-amount">{paymentData.amount.toLocaleString()}</span>
+              <span style={{ textDecoration: 'line-through', color: 'var(--text-dim)', fontSize: '1.2rem', marginLeft: 8 }}>₦{paymentData.discount.originalPrice.toLocaleString()}</span>
+              <span className="payment-period">one-time payment</span>
+              <div style={{ marginTop: 8, padding: '6px 14px', borderRadius: 8, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', color: 'var(--green-light)', fontSize: '0.82rem', fontWeight: 600 }}>
+                🎉 {paymentData.discount.message}
+              </div>
+            </>
+          ) : (
+            <>
+              <span className="payment-currency">₦</span>
+              <span className="payment-amount">1,000</span>
+              <span className="payment-period">one-time payment</span>
+            </>
+          )}
         </div>
 
         <ul className="payment-features">
@@ -187,7 +203,7 @@ export default function PaymentPage() {
         </ul>
 
         <button className="btn btn-primary btn-lg btn-full" onClick={handlePay} disabled={loading}>
-          {loading ? 'Processing...' : 'Pay ₦1,000 Now'}
+          {loading ? 'Processing...' : `Pay ₦${paymentData ? paymentData.amount.toLocaleString() : '1,000'} Now`}
         </button>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 16 }}>
