@@ -302,7 +302,7 @@ export class ReferralService {
   async getDashboard(userId: number) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { phone: true, network: true },
+      select: { phone: true, network: true, bankName: true, bankAccount: true, accountName: true },
     });
     const [wallet, referralInfo, referrals, rewards, showNudge, leaderboard] = await Promise.all([
       this.getWallet(userId),
