@@ -34,16 +34,8 @@ export function ReferralPopup() {
 
   const shouldShowPopup = useCallback(() => {
     if (!user) return false;
-    // Don't show on the invite page itself (it has its own modals)
     if (typeof window !== 'undefined' && window.location.pathname === '/invite') return false;
-    // Don't show on login or landing page
     if (typeof window !== 'undefined' && (window.location.pathname === '/' || window.location.pathname === '/login')) return false;
-
-    const lastDismissed = localStorage.getItem('pg_referral_popup_dismissed');
-    if (lastDismissed) {
-      const hours = (Date.now() - parseInt(lastDismissed)) / (1000 * 60 * 60);
-      if (hours < 4) return false; // Show every 4 hours
-    }
     return true;
   }, [user]);
 
@@ -74,7 +66,6 @@ export function ReferralPopup() {
 
   const handleDismiss = () => {
     setShow(false);
-    localStorage.setItem('pg_referral_popup_dismissed', Date.now().toString());
   };
 
   const handleCopy = async () => {
