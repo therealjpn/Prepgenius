@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Req, Query } from '@nestjs/common';
 import { ReferralService } from './referral.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -28,5 +28,17 @@ export class ReferralController {
   @Post('apply')
   applyCode(@Req() req: any, @Body() body: { referralCode: string }) {
     return this.referralService.applyReferralCode(req.user.userId, body.referralCode);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('payout-info')
+  updatePayoutInfo(@Req() req: any, @Body() body: { phone: string; network: string }) {
+    return this.referralService.updatePayoutInfo(req.user.userId, body.phone, body.network);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('leaderboard')
+  getReferralLeaderboard(@Query('month') month?: string) {
+    return this.referralService.getReferralLeaderboard(month);
   }
 }

@@ -4,6 +4,7 @@ import { ReferralService } from '../referral/referral.service';
 import { v4 as uuidv4 } from 'uuid';
 
 const PAYMENT_AMOUNT = 1000; // NGN 1,000
+const REFERRAL_DISCOUNT = 100; // ₦100 off with referral
 const SQUAD_SECRET = process.env.SQUAD_SECRET_KEY || '';
 const SQUAD_PUBLIC = process.env.SQUAD_PUBLIC_KEY || '';
 
@@ -15,15 +16,12 @@ export class PaymentService {
     private prisma: PrismaService,
     private referralService: ReferralService,
   ) {
-    // Log config on startup for debugging
     this.logger.log(`Squad config — Secret key: ${SQUAD_SECRET ? 'configured' : 'NOT SET'}`);
     this.logger.log(`Squad config — Public key: ${SQUAD_PUBLIC ? 'configured' : 'NOT SET'}`);
     this.logger.log(`Squad config — NODE_ENV: ${process.env.NODE_ENV}`);
   }
 
   private getSquadApiBase(): string {
-    // If the secret key starts with 'sandbox_sk_', use sandbox API
-    // Otherwise use live API
     if (SQUAD_SECRET.startsWith('sandbox_sk_') || SQUAD_SECRET.startsWith('sandbox')) {
       this.logger.log('Using Squad SANDBOX API');
       return 'https://sandbox-api.squadco.com';
@@ -37,22 +35,38 @@ export class PaymentService {
     if (!user) throw new NotFoundException('User not found');
     if (user.isPaid) return { alreadyPaid: true, message: 'You already have full access!' };
 
+    // Check for referral discount
+    const discount = await this.referralService.getReferralDiscount(userId);
+    const finalAmount = discount.hasDiscount ? PAYMENT_AMOUNT - discount.amount : PAYMENT_AMOUNT;
+
     const reference = 'PG-' + uuidv4().split('-')[0].toUpperCase() + '-' + Date.now();
     await this.prisma.payment.create({
-      data: { userId, reference, amount: PAYMENT_AMOUNT * 100, provider: 'squad' },
+      data: {
+        userId,
+        reference,
+        amount: finalAmount * 100, // Store in kobo
+        provider: 'squad',
+        discountAmount: discount.amount,
+        referralCode: discount.hasDiscount ? 'referral' : null,
+      },
     });
 
-    this.logger.log(`💳 Payment initialized for user ${userId} — ref: ${reference}`);
+    this.logger.log(`💳 Payment initialized for user ${userId} — ref: ${reference}, amount: ₦${finalAmount}${discount.hasDiscount ? ' (₦' + discount.amount + ' referral discount)' : ''}`);
 
     return {
       reference,
-      amount: PAYMENT_AMOUNT,
-      amountKobo: PAYMENT_AMOUNT * 100,
+      amount: finalAmount,
+      amountKobo: finalAmount * 100,
       email: user.email,
       customerName: user.fullName,
       publicKey: SQUAD_PUBLIC,
       currency: 'NGN',
       provider: 'squad',
+      discount: discount.hasDiscount ? {
+        amount: discount.amount,
+        originalPrice: PAYMENT_AMOUNT,
+        message: `₦${discount.amount} off with referral!`,
+      } : null,
     };
   }
 
@@ -61,7 +75,6 @@ export class PaymentService {
     const payment = await this.prisma.payment.findUnique({ where: { reference } });
     if (!payment || payment.userId !== userId) throw new NotFoundException('Payment not found');
 
-    // If already verified, return success
     if (payment.status === 'success') {
       this.logger.log(`Payment ${reference} already verified — returning success`);
       return { success: true, message: 'Payment already verified.' };
@@ -83,19 +96,17 @@ export class PaymentService {
           },
         });
         const data = await res.json();
-        this.logger.log(`Squad verify response: ${JSON.stringify(data)}`);
+        this.logger.log(`Squad verify response status: ${data.success}, txn_status: ${data.data?.transaction_status}`);
 
-        // Squad returns { success: true, data: { transaction_status: 'success' } }
         verified = data.success && data.data?.transaction_status === 'success';
 
         if (!verified) {
-          this.logger.warn(`Squad verification returned non-success: status=${data.data?.transaction_status}, success=${data.success}`);
+          this.logger.warn(`Squad verification non-success: status=${data.data?.transaction_status}`);
         }
       } catch (e: any) {
         this.logger.error(`Squad verification error: ${e.message}`);
       }
     } else {
-      // Demo mode — auto-verify when no secret key configured
       verified = true;
       this.logger.warn('Squad secret key not configured — auto-verifying (demo mode)');
     }
@@ -107,7 +118,7 @@ export class PaymentService {
 
   // ── Webhook handler for Squad ──────────────────────────────────
   async handleWebhook(body: any, signature: string) {
-    this.logger.log(`📩 Webhook received: ${JSON.stringify(body)}`);
+    this.logger.log(`📩 Webhook received`);
 
     // Verify webhook signature using HMAC SHA512
     if (SQUAD_SECRET) {
@@ -123,11 +134,18 @@ export class PaymentService {
       }
     }
 
-    const { transaction_ref, transaction_status } = body?.Body?.data || body?.data || body || {};
+    const eventData = body?.Body?.data || body?.data || body || {};
+    const { transaction_ref, transaction_status } = eventData;
+    const eventType = body?.Body?.Event || body?.Event || '';
 
     if (!transaction_ref) {
       this.logger.warn('Webhook missing transaction_ref');
       return { status: 'ignored', reason: 'no_reference' };
+    }
+
+    // Handle refund/reversal events
+    if (eventType === 'charge.refund' || eventType === 'charge.reversed' || transaction_status === 'reversed' || transaction_status === 'refunded') {
+      return this.handleReversal(transaction_ref, eventType);
     }
 
     if (transaction_status !== 'success') {
@@ -135,7 +153,6 @@ export class PaymentService {
       return { status: 'ignored', reason: 'not_success' };
     }
 
-    // Find payment
     const payment = await this.prisma.payment.findUnique({ where: { reference: transaction_ref } });
     if (!payment) {
       this.logger.warn(`Webhook: payment not found for ref ${transaction_ref}`);
@@ -152,8 +169,38 @@ export class PaymentService {
     return { status: 'success' };
   }
 
+  // ── Handle payment reversal ────────────────────────────────────
+  private async handleReversal(reference: string, eventType: string) {
+    const payment = await this.prisma.payment.findUnique({ where: { reference } });
+    if (!payment) {
+      this.logger.warn(`Reversal: payment not found for ref ${reference}`);
+      return { status: 'ignored', reason: 'payment_not_found' };
+    }
+
+    this.logger.warn(`⚠️ Payment reversal for ref ${reference} — event: ${eventType}`);
+
+    // Mark payment as reversed
+    await this.prisma.payment.update({
+      where: { reference },
+      data: { status: 'reversed' },
+    });
+
+    // Claw back referral coins
+    try {
+      await this.referralService.clawbackCoins(payment.userId, `Payment reversed: ${eventType}`);
+    } catch (e: any) {
+      this.logger.error(`Clawback failed for user ${payment.userId}: ${e.message}`);
+    }
+
+    // Optionally revoke access (leave isPaid for admin to handle manually)
+    this.logger.warn(`⚠️ User ${payment.userId} payment reversed — admin review needed`);
+    return { status: 'reversal_processed' };
+  }
+
   // ── Shared helper to mark payment success ─────────────────────
   private async markPaymentSuccess(userId: number, reference: string) {
+    const payment = await this.prisma.payment.findUnique({ where: { reference } });
+
     await this.prisma.payment.update({
       where: { reference },
       data: { status: 'success', verifiedAt: new Date() },
@@ -164,8 +211,13 @@ export class PaymentService {
       data: { isPaid: true, paymentRef: reference, paidAt: new Date() },
     });
 
-    // Award Geniuscoin to referrer
-    await this.referralService.awardReferralCoin(userId);
+    // Award Genius Coins to referrer (200 coins per referral)
+    try {
+      await this.referralService.awardReferralCoins(userId, reference);
+    } catch (e: any) {
+      // Never block payment on referral failure
+      this.logger.error(`Referral coin award failed for user ${userId}: ${e.message}`);
+    }
 
     this.logger.log(`✅ Payment verified for user ${userId} (ref: ${reference})`);
     return {
@@ -180,4 +232,3 @@ export class PaymentService {
     return { isPaid: user?.isPaid || false };
   }
 }
-
