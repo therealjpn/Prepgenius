@@ -404,6 +404,7 @@ body::before {
 .hero-text {
   flex: 1;
   min-width: 0;
+  text-align: left;
 }
 
 .hero-genie {
@@ -474,7 +475,7 @@ body::before {
   font-size: 1.125rem;
   color: var(--text-dim);
   max-width: 600px;
-  margin: 0 auto 32px;
+  margin: 0 0 32px;
   line-height: 1.7;
 }
 
@@ -490,7 +491,7 @@ body::before {
 .landing-price .price { font-size: 2rem; font-weight: 900; color: var(--green-light); }
 .landing-price .detail { color: var(--text-dim); font-size: 0.875rem; margin-top: 4px; }
 
-.landing-actions { display: flex; gap: 12px; justify-content: center; margin-bottom: 64px; flex-wrap: wrap; }
+.landing-actions { display: flex; gap: 12px; justify-content: flex-start; margin-bottom: 64px; flex-wrap: wrap; }
 
 .features-grid {
   display: grid;
@@ -1112,6 +1113,7 @@ body::before {
     gap: 16px;
   }
   .hero-text { text-align: center; }
+  .hero-text .landing-subtitle { margin: 0 auto 32px; }
   .hero-text .landing-actions { justify-content: center; }
   .hero-genie {
     flex: 0 0 auto;
