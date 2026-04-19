@@ -15,7 +15,7 @@ export function Footer() {
       }}>
         {/* Left: Brand */}
         <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
-          © {new Date().getFullYear()} <strong style={{ color: 'var(--text)' }}>Prep<span style={{ color: 'var(--green)' }}>Genius</span></strong> by Cresthub Media Limited
+          © {new Date().getFullYear()} <strong style={{ color: 'var(--text)' }}>Prep<span style={{ color: 'var(--green)' }}>Genie</span></strong> by Cresthub Media Limited
         </div>
 
         {/* Center: Links */}

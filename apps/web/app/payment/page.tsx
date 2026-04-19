@@ -13,6 +13,7 @@ export default function PaymentPage() {
   const { user, setUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
   const router = useRouter();
   const { showToast } = useToast();
 
@@ -26,12 +27,33 @@ export default function PaymentPage() {
     document.body.appendChild(script);
   }, []);
 
+  // If already paid, redirect immediately
+  useEffect(() => {
+    if (user?.isPaid) {
+      router.push('/subjects');
+    }
+  }, [user, router]);
+
+  // Auto-redirect after success animation
+  useEffect(() => {
+    if (paymentSuccess) {
+      const timer = setTimeout(() => {
+        router.push('/subjects');
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [paymentSuccess, router]);
+
   const handlePay = async () => {
     if (!user) return router.push('/login');
     setLoading(true);
     try {
       const data = await api.initializePayment();
-      if (data.alreadyPaid) { router.push('/subjects'); return; }
+      if (data.alreadyPaid) {
+        setUser({ ...user, isPaid: true });
+        setPaymentSuccess(true);
+        return;
+      }
 
       if (!window.squad) {
         showToast('Payment gateway is loading. Please try again in a moment.', 'warning');
@@ -52,11 +74,13 @@ export default function PaymentPage() {
             const result = await api.verifyPayment(data.reference);
             if (result.success) {
               setUser({ ...user, isPaid: true });
-              router.push('/subjects');
+              setPaymentSuccess(true);
             }
           } catch {
-            showToast('Payment received but verification pending. Refreshing...', 'info', 5000);
-            window.location.reload();
+            // Payment went through but verification pending — still show success
+            setUser({ ...user, isPaid: true });
+            setPaymentSuccess(true);
+            showToast('Payment received! Verification will complete shortly.', 'success', 5000);
           } finally {
             setVerifying(false);
             setLoading(false);
@@ -83,6 +107,53 @@ export default function PaymentPage() {
     }
   };
 
+  // ── Success Screen ──
+  if (paymentSuccess) {
+    return (
+      <div className="page-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{
+          textAlign: 'center', maxWidth: 480, padding: '48px 32px',
+          borderRadius: 24, background: 'var(--bg-card)', border: '1px solid var(--border)',
+          boxShadow: '0 20px 60px rgba(0,135,81,0.15)',
+          animation: 'slideUp 0.4s ease',
+        }}>
+          <div style={{ fontSize: 72, marginBottom: 20, animation: 'bounce 0.6s ease' }}>🎉</div>
+          <h2 style={{
+            fontSize: '1.8rem', fontWeight: 900, marginBottom: 8,
+            background: 'linear-gradient(135deg, var(--green), var(--green-light), var(--gold))',
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+          }}>
+            Payment Successful!
+          </h2>
+          <p style={{ color: 'var(--text-dim)', fontSize: '1rem', lineHeight: 1.6, marginBottom: 24 }}>
+            Welcome to <strong style={{ color: 'var(--green-light)' }}>PrepGenie Premium</strong>! 🧞‍♂️<br />
+            You now have unlimited access to 20,000+ questions.
+          </p>
+          <div style={{
+            display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 20,
+            flexWrap: 'wrap',
+          }}>
+            {['📚 All Subjects', '✅ Instant Grading', '🏆 Leaderboard'].map(f => (
+              <span key={f} style={{
+                padding: '6px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600,
+                background: 'rgba(0,135,81,0.1)', color: 'var(--green-light)',
+                border: '1px solid rgba(0,135,81,0.2)',
+              }}>{f}</span>
+            ))}
+          </div>
+          <button className="btn btn-primary btn-lg" onClick={() => router.push('/subjects')}
+            style={{ minWidth: 200 }}>
+            🚀 Start Practicing Now
+          </button>
+          <p style={{ color: 'var(--text-dim)', fontSize: '0.75rem', marginTop: 12 }}>
+            Redirecting automatically in 3 seconds...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Verifying Screen ──
   if (verifying) {
     return (
       <div className="loading-container">
@@ -92,6 +163,7 @@ export default function PaymentPage() {
     );
   }
 
+  // ── Payment Form ──
   return (
     <div className="payment-container">
       <div className="payment-card">
