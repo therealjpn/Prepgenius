@@ -1,5 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+
+const AnimatedGenie = dynamic(() => import('@/components/AnimatedGenie').then(m => ({ default: m.AnimatedGenie })), { ssr: false });
 
 export const metadata: Metadata = {
   title: 'PrepGenie — WAEC & NECO Past Questions | Practice & Ace Your Exams',
@@ -59,30 +62,39 @@ export default function HomePage() {
         }}
       />
 
-      <div className="landing-badge">🇳🇬 Built for Nigerian Students</div>
+      {/* Hero Section — Two Column */}
+      <div className="hero-split">
+        <div className="hero-text">
+          <div className="landing-badge">🇳🇬 Built for Nigerian Students</div>
 
-      <h1>
-        Ace Your <span className="gradient-text">WAEC &amp; NECO</span> Exams
-      </h1>
+          <h1>
+            Ace Your <span className="gradient-text">WAEC &amp; NECO</span> Exams
+          </h1>
 
-      <p className="landing-subtitle">
-        Practice with <strong>20,000+ real past questions</strong> from WAEC and NECO.
-        Get instant grading, detailed explanations, and compete on the weekly leaderboard.
-        Top 3 win airtime every week!
-      </p>
+          <p className="landing-subtitle">
+            Practice with <strong>20,000+ real past questions</strong> from WAEC and NECO.
+            Get instant grading, detailed explanations, and compete on the weekly leaderboard.
+            Top 3 win airtime every week!
+          </p>
 
-      <div className="landing-price">
-        <div className="price">₦1,000</div>
-        <div className="detail">One-time payment • Unlimited access • All subjects</div>
-      </div>
+          <div className="landing-price">
+            <div className="price">₦1,000</div>
+            <div className="detail">One-time payment • Unlimited access • All subjects</div>
+          </div>
 
-      <div className="landing-actions">
-        <Link href="/login" className="btn btn-primary btn-lg">
-          Get Started Now
-        </Link>
-        <Link href="/leaderboard" className="btn btn-glass btn-lg">
-          🏆 View Leaderboard
-        </Link>
+          <div className="landing-actions">
+            <Link href="/login" className="btn btn-primary btn-lg">
+              Get Started Now
+            </Link>
+            <Link href="/leaderboard" className="btn btn-glass btn-lg">
+              🏆 View Leaderboard
+            </Link>
+          </div>
+        </div>
+
+        <div className="hero-genie">
+          <AnimatedGenie />
+        </div>
       </div>
 
       <section className="features-grid">
