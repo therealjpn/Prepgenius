@@ -22,8 +22,8 @@ function getCurrentWeekStart(): string {
   return monday.toISOString().split('T')[0];
 }
 
-// In-memory store for active exam sessions
-const examStore = new Map<number, { questions: any[]; startedAt: number }>();
+// In-memory cache (fast path — also persisted to DB as fallback)
+const examCache = new Map<number, { questions: any[]; startedAt: number }>();
 
 @Injectable()
 export class ExamService {
@@ -125,11 +125,22 @@ export class ExamService {
       this.logger.log(`Using ${selected.length} local questions for ${subject}`);
     }
 
+    const now = new Date();
+
+    // Create session and persist questions in DB
     const session = await this.prisma.examSession.create({
-      data: { userId, examType, subject, year, totalQuestions: selected.length },
+      data: {
+        userId, examType, subject, year,
+        totalQuestions: selected.length,
+        questionsJson: JSON.stringify(selected),
+        startedAt: now,
+      },
     });
 
-    examStore.set(session.id, { questions: selected, startedAt: Date.now() });
+    // Also cache in memory for fast access
+    examCache.set(session.id, { questions: selected, startedAt: now.getTime() });
+
+    this.logger.log(`📝 Exam started: session ${session.id} for user ${userId} — ${subject} (${selected.length} questions)`);
 
     return {
       sessionId: session.id, subject, examType, source,
@@ -145,16 +156,37 @@ export class ExamService {
     const { sessionId, answers } = body;
     if (!sessionId || !answers) throw new BadRequestException('Session ID and answers are required');
 
-    const examData = examStore.get(sessionId);
-    if (!examData) throw new NotFoundException('Exam session not found or expired');
-
     const session = await this.prisma.examSession.findUnique({ where: { id: sessionId } });
     if (!session || session.userId !== userId) throw new ForbiddenException('Unauthorized');
+
+    // Prevent double submission
+    if (session.completed) {
+      this.logger.warn(`Session ${sessionId} already submitted — returning cached results`);
+      throw new BadRequestException('This exam has already been submitted.');
+    }
+
+    // Get questions: try memory cache first, then DB
+    let questions: any[];
+    let startedAt: number;
+
+    const cached = examCache.get(sessionId);
+    if (cached) {
+      questions = cached.questions;
+      startedAt = cached.startedAt;
+      this.logger.log(`Using cached questions for session ${sessionId}`);
+    } else if (session.questionsJson) {
+      // Fallback to DB — server may have restarted
+      questions = JSON.parse(session.questionsJson);
+      startedAt = session.startedAt?.getTime() || session.createdAt.getTime();
+      this.logger.log(`Recovered questions from DB for session ${sessionId} (server restarted)`);
+    } else {
+      throw new NotFoundException('Exam session not found or expired. Questions were lost due to server restart.');
+    }
 
     const results: any[] = [];
     let correctCount = 0;
 
-    examData.questions.forEach((q: any, i: number) => {
+    questions.forEach((q: any, i: number) => {
       const userAnswer = answers[i] || '';
       const isCorrect = userAnswer.trim() === q.correct_answer.trim();
       if (isCorrect) correctCount++;
@@ -165,9 +197,9 @@ export class ExamService {
       });
     });
 
-    const total = examData.questions.length;
+    const total = questions.length;
     const percentage = Math.round((correctCount / total) * 100);
-    const timeTaken = Math.round((Date.now() - examData.startedAt) / 1000);
+    const timeTaken = Math.round((Date.now() - startedAt) / 1000);
     const pointsEarned = correctCount * 10;
 
     await this.prisma.examSession.update({
@@ -176,6 +208,7 @@ export class ExamService {
         correctAnswers: correctCount, scorePercentage: percentage,
         pointsEarned, timeTakenSeconds: timeTaken,
         answersJson: JSON.stringify(answers), completed: true, completedAt: new Date(),
+        questionsJson: null, // Clear stored questions after grading to save space
       },
     });
 
@@ -207,7 +240,11 @@ export class ExamService {
       });
     }
 
-    examStore.delete(sessionId);
+    // Clean up memory cache
+    examCache.delete(sessionId);
+
+    this.logger.log(`✅ Exam submitted: session ${sessionId} — ${correctCount}/${total} (${percentage}%) — ${pointsEarned} pts`);
     return { results, score: { correct: correctCount, total, percentage, pointsEarned, timeTaken }, subject: session.subject, examType: session.examType };
   }
 }
+

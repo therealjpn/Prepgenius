@@ -98,6 +98,8 @@ model ExamSession {
   pointsEarned    Int       @default(0) @map("points_earned")
   timeTakenSeconds Int?     @map("time_taken_seconds")
   answersJson     String?   @map("answers_json")
+  questionsJson   String?   @map("questions_json")
+  startedAt       DateTime  @default(now()) @map("started_at")
   completed       Boolean   @default(false)
   createdAt       DateTime  @default(now()) @map("created_at")
   completedAt     DateTime? @map("completed_at")
