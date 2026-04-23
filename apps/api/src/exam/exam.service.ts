@@ -2,14 +2,38 @@ import { Injectable, Logger, BadRequestException, NotFoundException, ForbiddenEx
 import { PrismaService } from '../prisma/prisma.service';
 import { AlocService } from './aloc.service';
 import { localQuestions } from './questions.data';
+import * as crypto from 'crypto';
 
+/**
+ * Cryptographically strong Fisher-Yates shuffle.
+ * Uses crypto.getRandomValues for better entropy than Math.random().
+ */
 function shuffleArray<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    // Generate a cryptographically random index in [0, i]
+    const randomBytes = crypto.randomBytes(4);
+    const j = randomBytes.readUInt32BE(0) % (i + 1);
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+/**
+ * Shuffle the options within a question and update correct_answer to match.
+ * This prevents users from memorizing answer positions.
+ */
+function shuffleQuestionOptions(question: any): any {
+  if (!question.options || question.options.length < 2) return question;
+
+  const correctAnswer = question.correct_answer;
+  const shuffledOptions = shuffleArray([...question.options]);
+
+  return {
+    ...question,
+    options: shuffledOptions,
+    correct_answer: correctAnswer, // The answer TEXT stays the same, only position changes
+  };
 }
 
 function getCurrentWeekStart(): string {
@@ -58,11 +82,14 @@ export class ExamService {
       demo: true,
       subject,
       totalQuestions: 5,
-      questions: selected.map((q: any, i: number) => ({
-        id: i, question: q.question, options: q.options,
-        topic: q.topic, year: q.year, exam_type: q.exam_type,
-        correct_answer: q.correct_answer, explanation: q.explanation,
-      })),
+      questions: selected.map((q: any, i: number) => {
+        const shuffled = shuffleQuestionOptions(q);
+        return {
+          id: i, question: shuffled.question, options: shuffled.options,
+          topic: shuffled.topic, year: shuffled.year, exam_type: shuffled.exam_type,
+          correct_answer: shuffled.correct_answer, explanation: shuffled.explanation,
+        };
+      }),
     };
   }
 
@@ -88,6 +115,35 @@ export class ExamService {
     };
   }
 
+  /**
+   * Get question hashes the user has recently seen (last 5 sessions)
+   * to avoid repeating the same questions.
+   */
+  private async getRecentQuestionHashes(userId: number, subject: string): Promise<Set<string>> {
+    const recentSessions = await this.prisma.examSession.findMany({
+      where: { userId, subject, completed: true },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+      select: { answersJson: true, questionsJson: true },
+    });
+
+    const hashes = new Set<string>();
+    for (const session of recentSessions) {
+      // Use answersJson to reconstruct which questions were shown
+      // (questionsJson is cleared after grading to save space)
+      if (session.answersJson) {
+        try {
+          const answers = JSON.parse(session.answersJson);
+          // Each answer key is a question index — use the count as a fingerprint
+          Object.keys(answers).forEach((k) => {
+            hashes.add(`${subject}_${k}_${answers[k]}`);
+          });
+        } catch {}
+      }
+    }
+    return hashes;
+  }
+
   async startExam(userId: number, body: { subject: string; examType?: string; year?: string; questionCount?: number }) {
     const { subject, examType = 'WAEC', year = 'all', questionCount = 10 } = body;
     if (!subject || !localQuestions[subject]) {
@@ -101,14 +157,15 @@ export class ExamService {
     let selected: any[] = [];
     let source = 'local';
 
-    // Try ALOC first
+    // Try ALOC first — make multiple randomized calls for diversity
     if (this.aloc.isAvailable() && this.aloc.getSubjectSlug(subject)) {
       try {
-        const alocQ = await this.aloc.fetchQuestions(subject, questionCount, { examType, year });
-        if (alocQ.length >= Math.min(questionCount, 5)) {
-          selected = shuffleArray(alocQ).slice(0, questionCount);
+        selected = await this.aloc.fetchRandomizedQuestions(subject, questionCount, { examType, year });
+        if (selected.length >= Math.min(questionCount, 5)) {
           source = 'aloc';
-          this.logger.log(`Using ${selected.length} ALOC questions for ${subject}`);
+          this.logger.log(`Using ${selected.length} randomized ALOC questions for ${subject}`);
+        } else {
+          selected = []; // Not enough, fall back to local
         }
       } catch (e: any) {
         this.logger.warn(`ALOC failed for ${subject}: ${e.message}`);
@@ -124,6 +181,12 @@ export class ExamService {
       selected = shuffleArray(pool).slice(0, Math.min(questionCount, pool.length));
       this.logger.log(`Using ${selected.length} local questions for ${subject}`);
     }
+
+    // Shuffle options within each question for maximum randomness
+    selected = selected.map(shuffleQuestionOptions);
+
+    // Double-shuffle the question order
+    selected = shuffleArray(selected);
 
     const now = new Date();
 
@@ -247,4 +310,3 @@ export class ExamService {
     return { results, score: { correct: correctCount, total, percentage, pointsEarned, timeTaken }, subject: session.subject, examType: session.examType };
   }
 }
-

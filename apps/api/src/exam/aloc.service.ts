@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import * as crypto from 'crypto';
 
 const ALOC_BASE = 'https://questions.aloc.com.ng/api/v2';
 
@@ -14,6 +15,9 @@ const SUBJECT_MAP: Record<string, string> = {
 const EXAM_TYPE_MAP: Record<string, string | null> = {
   WAEC: 'wassce', NECO: 'wassce', JAMB: 'utme', UTME: 'utme', all: null,
 };
+
+// Available years for random selection
+const AVAILABLE_YEARS = ['2019', '2020', '2021', '2022', '2023'];
 
 function cleanHtml(str: string): string {
   if (!str) return '';
@@ -47,6 +51,14 @@ function normalizeQuestion(q: any) {
     topic: q.topic || '', year: q.examyear || '', exam_type: examType,
     source: 'aloc',
   };
+}
+
+/**
+ * Generate a cryptographically random integer in [0, max)
+ */
+function cryptoRandomInt(max: number): number {
+  const bytes = crypto.randomBytes(4);
+  return bytes.readUInt32BE(0) % max;
 }
 
 @Injectable()
@@ -86,5 +98,131 @@ export class AlocService {
     );
     this.logger.log(`Got ${normalized.length} valid questions for ${subject}`);
     return normalized;
+  }
+
+  /**
+   * Fetch questions using multiple calls with randomized parameters
+   * to break the sequential pattern and maximize diversity.
+   *
+   * Strategy:
+   * 1. Split the requested count across 2-3 smaller calls
+   * 2. Use random year filters for each call
+   * 3. Deduplicate by question text hash
+   * 4. Shuffle the final result
+   */
+  async fetchRandomizedQuestions(
+    subject: string,
+    count: number,
+    opts: { examType?: string; year?: string } = {},
+  ): Promise<any[]> {
+    const slug = SUBJECT_MAP[subject];
+    if (!slug || !this.token) throw new Error('ALOC not available for ' + subject);
+
+    const allQuestions = new Map<string, any>(); // Deduplicate by question text hash
+
+    // Determine which years to query
+    const yearsToQuery = opts.year && opts.year !== 'all'
+      ? [opts.year]
+      : this.getRandomYears(3); // Pick 3 random years
+
+    // Determine exam types to query
+    const examTypes: string[] = [];
+    if (opts.examType === 'all' || !opts.examType) {
+      examTypes.push('wassce', 'utme');
+    } else {
+      const mapped = EXAM_TYPE_MAP[opts.examType];
+      if (mapped) examTypes.push(mapped);
+      else examTypes.push('wassce');
+    }
+
+    // Make multiple parallel calls with varied parameters
+    const calls: Promise<any[]>[] = [];
+    const perCall = Math.ceil(count / Math.max(yearsToQuery.length, 2));
+
+    for (const year of yearsToQuery) {
+      for (const type of examTypes) {
+        calls.push(
+          this.fetchSingleBatch(slug, Math.min(perCall + 5, 40), type, year)
+            .catch((e) => {
+              this.logger.warn(`ALOC batch failed (${type}/${year}): ${e.message}`);
+              return [];
+            }),
+        );
+      }
+    }
+
+    // Also make one call without year filter for extra diversity
+    calls.push(
+      this.fetchSingleBatch(slug, Math.min(count, 40), examTypes[0], undefined)
+        .catch(() => []),
+    );
+
+    const results = await Promise.all(calls);
+
+    // Merge and deduplicate
+    for (const batch of results) {
+      for (const q of batch) {
+        const hash = this.questionHash(q);
+        if (!allQuestions.has(hash)) {
+          allQuestions.set(hash, q);
+        }
+      }
+    }
+
+    // Convert to array and crypto-shuffle
+    let pool = Array.from(allQuestions.values());
+    pool = this.cryptoShuffle(pool);
+
+    this.logger.log(`Randomized ALOC: ${allQuestions.size} unique questions from ${results.length} batches, returning ${Math.min(count, pool.length)}`);
+    return pool.slice(0, count);
+  }
+
+  private async fetchSingleBatch(slug: string, count: number, type?: string, year?: string): Promise<any[]> {
+    let url = `${ALOC_BASE}/q/${count}?subject=${slug}`;
+    if (type) url += `&type=${type}`;
+    if (year) url += `&year=${year}`;
+
+    const res = await fetch(url, {
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json', AccessToken: this.token },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) throw new Error(`ALOC API error ${res.status}`);
+
+    const data = await res.json();
+    let raw: any[] = [];
+    if (data.data) { raw = Array.isArray(data.data) ? data.data : [data.data]; }
+    else if (data.question) { raw = [data]; }
+
+    return raw.map(normalizeQuestion).filter(
+      (q): q is NonNullable<typeof q> => q !== null && !!q.question && q.options.length >= 2 && !!q.correct_answer,
+    );
+  }
+
+  /**
+   * Get N random years from available years.
+   */
+  private getRandomYears(n: number): string[] {
+    const shuffled = this.cryptoShuffle([...AVAILABLE_YEARS]);
+    return shuffled.slice(0, Math.min(n, shuffled.length));
+  }
+
+  /**
+   * Create a hash of a question for deduplication.
+   */
+  private questionHash(q: any): string {
+    const text = (q.question || '').toLowerCase().replace(/\s+/g, ' ').trim().slice(0, 100);
+    return crypto.createHash('md5').update(text).digest('hex');
+  }
+
+  /**
+   * Fisher-Yates shuffle with crypto randomness.
+   */
+  private cryptoShuffle<T>(arr: T[]): T[] {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = cryptoRandomInt(i + 1);
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
   }
 }

@@ -108,4 +108,8 @@ export const api = {
   createTicket: (subject: string, message: string) =>
     request('/api/support/tickets', { method: 'POST', body: JSON.stringify({ subject, message }) }),
   getMyTickets: () => request('/api/support/tickets'),
+
+  // Analytics (admin)
+  adminAnalytics: (period?: string) =>
+    request(`/api/admin/analytics?period=${period || 'all'}`),
 };

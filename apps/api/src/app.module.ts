@@ -8,6 +8,7 @@ import { UserModule } from './user/user.module';
 import { ReferralModule } from './referral/referral.module';
 import { AdminModule } from './admin/admin.module';
 import { SupportModule } from './support/support.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
@@ -20,6 +21,8 @@ import { SupportModule } from './support/support.module';
     ReferralModule,
     AdminModule,
     SupportModule,
+    AnalyticsModule,
   ],
 })
 export class AppModule {}
+

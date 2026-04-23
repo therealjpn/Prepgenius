@@ -17,9 +17,12 @@ export default function AdminPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { showToast } = useToast();
-  const [tab, setTab] = useState<'metrics' | 'users' | 'referrals' | 'payouts' | 'tickets'>('metrics');
+  const [tab, setTab] = useState<'metrics' | 'analytics' | 'users' | 'referrals' | 'payouts' | 'tickets'>('metrics');
   const [period, setPeriod] = useState('all');
   const [metrics, setMetrics] = useState<any>(null);
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [analyticsPeriod, setAnalyticsPeriod] = useState('30d');
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
   const [userTotal, setUserTotal] = useState(0);
   const [tickets, setTickets] = useState<any[]>([]);
@@ -43,15 +46,28 @@ export default function AdminPage() {
     }
   }, [router]);
 
+  const fetchAnalytics = useCallback(async (p: string) => {
+    setAnalyticsLoading(true);
+    try {
+      const a = await api.adminAnalytics(p);
+      setAnalytics(a);
+    } catch (err: any) {
+      if (err.message?.includes('Admin')) router.push('/');
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  }, [router]);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [m, u, t, r, p] = await Promise.all([
+      const [m, u, t, r, p, a] = await Promise.all([
         api.adminMetrics(period),
         api.adminUsers(search),
         api.adminTickets(),
         api.adminReferrals().catch(() => []),
         api.adminPayouts().catch(() => []),
+        api.adminAnalytics(analyticsPeriod).catch(() => null),
       ]);
       setMetrics(m);
       setUsers(u.users);
@@ -59,12 +75,13 @@ export default function AdminPage() {
       setTickets(t);
       setReferrals(r);
       setPayouts(p);
+      if (a) setAnalytics(a);
     } catch (err: any) {
       if (err.message?.includes('Admin')) router.push('/');
     } finally {
       setLoading(false);
     }
-  }, [search, period, router]);
+  }, [search, period, analyticsPeriod, router]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -135,15 +152,15 @@ export default function AdminPage() {
           <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', marginTop: 4 }}>Manage users, view metrics & resolve support tickets</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          {(['metrics', 'users', 'referrals', 'payouts', 'tickets'] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)}
+          {(['metrics', 'analytics', 'users', 'referrals', 'payouts', 'tickets'] as const).map(t => (
+            <button key={t} onClick={() => { setTab(t); if (t === 'analytics' && !analytics) fetchAnalytics(analyticsPeriod); }}
               style={{
                 padding: '8px 16px', borderRadius: 10, fontSize: '0.85rem', fontWeight: 600, border: 'none', cursor: 'pointer',
                 background: tab === t ? 'var(--green)' : 'var(--bg-card)',
                 color: tab === t ? '#fff' : 'var(--text-dim)',
                 transition: 'all 0.2s',
               }}>
-              {t === 'metrics' ? '📊' : t === 'users' ? '👥' : t === 'referrals' ? '🔗' : t === 'payouts' ? '💸' : '🎫'} {t.charAt(0).toUpperCase() + t.slice(1)}
+              {t === 'metrics' ? '📊' : t === 'analytics' ? '👁️' : t === 'users' ? '👥' : t === 'referrals' ? '🔗' : t === 'payouts' ? '💸' : '🎫'} {t.charAt(0).toUpperCase() + t.slice(1)}
             </button>
           ))}
         </div>
@@ -212,6 +229,113 @@ export default function AdminPage() {
             <MetricCard label="Active Referrals" value={metrics.totalReferrals || 0} icon="🔗" color="#06b6d4" />
             <MetricCard label="Pending Payouts" value={metrics.pendingPayouts || 0} icon="💸" color="#a78bfa" />
           </div>
+        </div>
+      )}
+
+      {/* Analytics Tab */}
+      {tab === 'analytics' && (
+        <div>
+          {/* Period Filter */}
+          <div style={{
+            display: 'flex', gap: 6, marginBottom: 20, padding: 4,
+            background: 'var(--bg-card)', borderRadius: 12, width: 'fit-content',
+            border: '1px solid var(--border)',
+          }}>
+            {PERIODS.map(p => (
+              <button key={p.key} onClick={() => { setAnalyticsPeriod(p.key); fetchAnalytics(p.key); }}
+                style={{
+                  padding: '6px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600,
+                  border: 'none', cursor: 'pointer', transition: 'all 0.2s',
+                  background: analyticsPeriod === p.key ? 'var(--green)' : 'transparent',
+                  color: analyticsPeriod === p.key ? '#fff' : 'var(--text-dim)',
+                }}>
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          {analyticsLoading && (
+            <div style={{ textAlign: 'center', padding: 12 }}>
+              <div className="spinner" style={{ width: 20, height: 20, margin: '0 auto' }} />
+            </div>
+          )}
+
+          {analytics && (
+            <>
+              {/* Visitor Summary Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 24 }}>
+                <MetricCard label="Today's Visitors" value={analytics.todayVisitors} icon="👁️" color="#818cf8" />
+                <MetricCard label="Today's Page Views" value={analytics.todayViews} icon="📄" color="var(--green-light)" />
+                <MetricCard label={`Total Visitors (${PERIODS.find(p => p.key === analyticsPeriod)?.label})`} value={analytics.uniqueVisitors} icon="👥" color="#06b6d4" />
+                <MetricCard label={`Total Page Views (${PERIODS.find(p => p.key === analyticsPeriod)?.label})`} value={analytics.totalPageViews} icon="📊" color="var(--gold)" />
+              </div>
+
+              {/* Daily Visitors Bar Chart */}
+              {analytics.dailyViews?.length > 0 && (
+                <div style={{ padding: 20, borderRadius: 14, background: 'var(--bg-card)', border: '1px solid var(--border)', marginBottom: 24 }}>
+                  <h4 style={{ color: 'var(--text-bright)', fontWeight: 700, fontSize: '0.95rem', marginBottom: 16 }}>📈 Daily Visitors</h4>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 160, overflow: 'hidden' }}>
+                    {analytics.dailyViews.map((d: any, i: number) => {
+                      const maxViews = Math.max(...analytics.dailyViews.map((x: any) => x.views), 1);
+                      const height = Math.max((d.views / maxViews) * 140, 4);
+                      const dayLabel = new Date(d.date + 'T00:00:00').toLocaleDateString('en-NG', { day: 'numeric', month: 'short' });
+                      return (
+                        <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 0 }}>
+                          <span style={{ fontSize: '0.6rem', color: 'var(--text-dim)', fontWeight: 700 }}>{d.views}</span>
+                          <div style={{
+                            width: '100%', maxWidth: 28, height, borderRadius: '6px 6px 2px 2px',
+                            background: 'linear-gradient(180deg, #818cf8 0%, #6366f1 100%)',
+                            transition: 'height 0.3s ease',
+                          }} title={`${dayLabel}: ${d.views} views, ${d.visitors} visitors`} />
+                          <span style={{ fontSize: '0.55rem', color: 'var(--text-dim)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{dayLabel}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Top Pages & Referrers */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                {/* Top Pages */}
+                <div style={{ padding: 20, borderRadius: 14, background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                  <h4 style={{ color: 'var(--text-bright)', fontWeight: 700, fontSize: '0.95rem', marginBottom: 12 }}>🔝 Top Pages</h4>
+                  {analytics.topPages?.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {analytics.topPages.slice(0, 10).map((p: any, i: number) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                          <span style={{ color: 'var(--text)', fontSize: '0.82rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>{p.path}</span>
+                          <span style={{ color: 'var(--green-light)', fontWeight: 700, fontSize: '0.8rem' }}>{p.views}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>No data yet</p>}
+                </div>
+
+                {/* Top Referrers */}
+                <div style={{ padding: 20, borderRadius: 14, background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                  <h4 style={{ color: 'var(--text-bright)', fontWeight: 700, fontSize: '0.95rem', marginBottom: 12 }}>🔗 Top Referrers</h4>
+                  {analytics.topReferrers?.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {analytics.topReferrers.slice(0, 10).map((r: any, i: number) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                          <span style={{ color: 'var(--text)', fontSize: '0.82rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>{r.referrer}</span>
+                          <span style={{ color: '#818cf8', fontWeight: 700, fontSize: '0.8rem' }}>{r.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>No referrer data yet</p>}
+                </div>
+              </div>
+            </>
+          )}
+
+          {!analytics && !analyticsLoading && (
+            <div style={{ textAlign: 'center', padding: 48, color: 'var(--text-dim)' }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>👁️</div>
+              <p>No analytics data yet. Visitors will appear here automatically.</p>
+            </div>
+          )}
         </div>
       )}
 

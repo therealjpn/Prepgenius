@@ -7,8 +7,11 @@ import { Navbar } from '@/components/Navbar';
 import { ReferralPopup } from '@/components/ReferralPopup';
 import { Footer } from '@/components/Footer';
 import { ToastProvider } from '@/components/Toast';
+import { AnalyticsBeacon } from '@/components/AnalyticsBeacon';
 
 const inter = Inter({ subsets: ['latin'], weight: ['300','400','500','600','700','800','900'] });
+
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://prepgenie.xyz'),
@@ -57,6 +60,30 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <ReferralPopup />
           </ToastProvider>
         </AuthProvider>
+
+        {/* Analytics Beacon — tracks page views to our own database */}
+        <AnalyticsBeacon />
+
+        {/* Google Analytics 4 */}
+        {GA_ID && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+              strategy="afterInteractive"
+            />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${GA_ID}', {
+                  page_path: window.location.pathname,
+                  send_page_view: true
+                });
+              `}
+            </Script>
+          </>
+        )}
 
         {/* TikTok Pixel */}
         <Script id="tiktok-pixel" strategy="afterInteractive">

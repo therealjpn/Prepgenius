@@ -233,3 +233,18 @@ model ReferralLeaderboard {
   @@index([month, successfulReferrals(sort: Desc)])
   @@map("referral_leaderboard")
 }
+
+model PageView {
+  id        Int      @id @default(autoincrement())
+  path      String
+  referrer  String?
+  userAgent String?  @map("user_agent")
+  ipHash    String?  @map("ip_hash")
+  userId    Int?     @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@index([path])
+  @@index([ipHash])
+  @@map("page_views")
+}

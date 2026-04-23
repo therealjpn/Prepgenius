@@ -102,9 +102,9 @@ export function SubjectsClient() {
           <div className="config-group">
             <label className="config-label">Exam Type</label>
             <div className="segmented-control">
-              {['WAEC', 'NECO', 'all'].map(t => (
+              {['WAEC', 'NECO', 'JAMB', 'all'].map(t => (
                 <button key={t} className={`seg-btn ${examType === t ? 'active' : ''}`} onClick={() => setExamType(t)}>
-                  {t === 'all' ? 'Both' : t}
+                  {t === 'all' ? 'All' : t}
                 </button>
               ))}
             </div>
