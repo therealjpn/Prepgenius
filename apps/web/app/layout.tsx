@@ -11,7 +11,7 @@ import { AnalyticsBeacon } from '@/components/AnalyticsBeacon';
 
 const inter = Inter({ subsets: ['latin'], weight: ['300','400','500','600','700','800','900'] });
 
-const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID || 'G-KDMMMZEJP5';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://prepgenie.xyz'),
