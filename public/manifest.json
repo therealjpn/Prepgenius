@@ -1,0 +1,17 @@
+{
+  "name": "PrepGenius",
+  "short_name": "PrepGenius",
+  "description": "AI-powered exam prep for WAEC, JAMB, NECO, and ICAN across web and WhatsApp.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5F5F5",
+  "theme_color": "#1B5E20",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
+
