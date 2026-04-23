@@ -101,11 +101,16 @@ export class AnalyticsService {
         count: r._count.referrer,
       }));
 
-    const dailyViews = dailyViewsRaw.map((d) => ({
-      date: String(d.date).split('T')[0],
-      views: Number(d.views),
-      visitors: Number(d.visitors),
-    })).reverse(); // chronological order
+    const dailyViews = dailyViewsRaw.map((d) => {
+      // PostgreSQL DATE() returns a JS Date object — use toISOString for reliable formatting
+      const dateObj = d.date instanceof Date ? d.date : new Date(d.date);
+      const dateStr = dateObj.toISOString().split('T')[0];
+      return {
+        date: dateStr,
+        views: Number(d.views),
+        visitors: Number(d.visitors),
+      };
+    }).reverse(); // chronological order
 
     // Today's stats
     const todayStart = new Date();
