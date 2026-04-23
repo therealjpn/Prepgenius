@@ -103,7 +103,7 @@ export class AnalyticsService {
 
     const dailyViews = dailyViewsRaw.map((d) => {
       // PostgreSQL DATE() returns a JS Date object — use toISOString for reliable formatting
-      const dateObj = d.date instanceof Date ? d.date : new Date(d.date);
+      const dateObj = new Date(d.date as any);
       const dateStr = dateObj.toISOString().split('T')[0];
       return {
         date: dateStr,
