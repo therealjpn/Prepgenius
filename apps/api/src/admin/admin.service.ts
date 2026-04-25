@@ -508,6 +508,60 @@ export class AdminService {
     });
   }
 
+  // ── Weekly Rewards (Admin) ─────────────────────────────────────
+  private getWeekStart(offset = 0): string {
+    const now = new Date();
+    const day = now.getDay();
+    const diff = day === 0 ? 6 : day - 1;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - diff + offset * 7);
+    monday.setHours(0, 0, 0, 0);
+    return monday.toISOString().split('T')[0];
+  }
+
+  async getWeeklyRewards(weekStart?: string) {
+    const targetWeek = weekStart || this.getWeekStart(0);
+
+    const entries = await this.prisma.leaderboard.findMany({
+      where: { weekStart: targetWeek },
+      orderBy: [{ totalPoints: 'desc' }, { accuracy: 'desc' }],
+      take: 20,
+      include: {
+        user: {
+          select: {
+            id: true, fullName: true, email: true, phone: true, network: true,
+            avatarUrl: true, isPaid: true,
+          },
+        },
+      },
+    });
+
+    const weekEnd = new Date(targetWeek);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+
+    const rewards = ['₦1,000 Airtime', '₦500 Airtime', '₦300 Airtime'];
+
+    return {
+      weekStart: targetWeek,
+      weekEnd: weekEnd.toISOString().split('T')[0],
+      entries: entries.map((e, i) => ({
+        rank: i + 1,
+        userId: e.user.id,
+        fullName: e.user.fullName,
+        email: e.user.email,
+        phone: e.user.phone || '—',
+        network: e.user.network || '—',
+        avatarUrl: e.user.avatarUrl,
+        isPaid: e.user.isPaid,
+        totalPoints: e.totalPoints,
+        accuracy: Math.round(e.accuracy || 0),
+        examsTaken: e.examsTaken,
+        reward: i < 3 ? rewards[i] : null,
+      })),
+      previousWeek: this.getWeekStart(-1),
+    };
+  }
+
   private getCurrentMonth(): string {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;

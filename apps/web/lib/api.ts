@@ -114,4 +114,8 @@ export const api = {
   // Analytics (admin)
   adminAnalytics: (period?: string) =>
     request(`/api/admin/analytics?period=${period || 'all'}`),
+
+  // Weekly Rewards (admin)
+  adminWeeklyRewards: (week?: string) =>
+    request(`/api/admin/weekly-rewards${week ? `?week=${week}` : ''}`),
 };

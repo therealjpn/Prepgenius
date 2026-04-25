@@ -109,4 +109,10 @@ export class AdminController {
   replyTicket(@Param('id', ParseIntPipe) id: number, @Body() body: { reply: string }) {
     return this.adminService.replyTicket(id, body.reply);
   }
+
+  // ── Weekly Rewards ──
+  @Get('weekly-rewards')
+  getWeeklyRewards(@Query('week') week?: string) {
+    return this.adminService.getWeeklyRewards(week);
+  }
 }

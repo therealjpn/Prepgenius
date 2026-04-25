@@ -17,7 +17,7 @@ export default function AdminPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { showToast } = useToast();
-  const [tab, setTab] = useState<'metrics' | 'analytics' | 'users' | 'referrals' | 'payouts' | 'tickets'>('metrics');
+  const [tab, setTab] = useState<'metrics' | 'analytics' | 'users' | 'referrals' | 'payouts' | 'tickets' | 'rewards'>('metrics');
   const [period, setPeriod] = useState('all');
   const [metrics, setMetrics] = useState<any>(null);
   const [analytics, setAnalytics] = useState<any>(null);
@@ -38,6 +38,8 @@ export default function AdminPage() {
   const [replyText, setReplyText] = useState<Record<number, string>>({});
   const [referrals, setReferrals] = useState<any[]>([]);
   const [payouts, setPayouts] = useState<any[]>([]);
+  const [weeklyRewards, setWeeklyRewards] = useState<any>(null);
+  const [rewardsLoading, setRewardsLoading] = useState(false);
 
   const fetchMetrics = useCallback(async (p: string) => {
     setMetricsLoading(true);
@@ -227,16 +229,23 @@ export default function AdminPage() {
           <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-bright)', margin: 0 }}>🛡️ Admin Dashboard</h1>
           <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', marginTop: 4 }}>Manage users, view metrics & resolve support tickets</p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {(['metrics', 'analytics', 'users', 'referrals', 'payouts', 'tickets'] as const).map(t => (
-            <button key={t} onClick={() => { setTab(t); if (t === 'analytics' && !analytics) fetchAnalytics(analyticsPeriod); }}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {(['metrics', 'analytics', 'users', 'referrals', 'payouts', 'tickets', 'rewards'] as const).map(t => (
+            <button key={t} onClick={() => {
+              setTab(t);
+              if (t === 'analytics' && !analytics) fetchAnalytics(analyticsPeriod);
+              if (t === 'rewards' && !weeklyRewards) {
+                setRewardsLoading(true);
+                api.adminWeeklyRewards().then(r => setWeeklyRewards(r)).catch(() => {}).finally(() => setRewardsLoading(false));
+              }
+            }}
               style={{
                 padding: '8px 16px', borderRadius: 10, fontSize: '0.85rem', fontWeight: 600, border: 'none', cursor: 'pointer',
                 background: tab === t ? 'var(--green)' : 'var(--bg-card)',
                 color: tab === t ? '#fff' : 'var(--text-dim)',
                 transition: 'all 0.2s',
               }}>
-              {t === 'metrics' ? '📊' : t === 'analytics' ? '👁️' : t === 'users' ? '👥' : t === 'referrals' ? '🔗' : t === 'payouts' ? '💸' : '🎫'} {t.charAt(0).toUpperCase() + t.slice(1)}
+              {t === 'metrics' ? '📊' : t === 'analytics' ? '👁️' : t === 'users' ? '👥' : t === 'referrals' ? '🔗' : t === 'payouts' ? '💸' : t === 'rewards' ? '🏆' : '🎫'} {t.charAt(0).toUpperCase() + t.slice(1)}
             </button>
           ))}
         </div>
@@ -513,7 +522,7 @@ export default function AdminPage() {
                         {u.isAdmin && <span style={{ fontSize: '0.65rem', padding: '1px 6px', borderRadius: 6, background: 'rgba(139,92,246,0.2)', color: '#a78bfa' }}>Admin</span>}
                       </div>
                     </td>
-                    <td style={{ padding: '10px', color: 'var(--text-dim)', fontSize: '0.82rem', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</td>
+                    <td style={{ padding: '10px', color: 'var(--text-dim)', fontSize: '0.82rem' }}>{u.email}</td>
                     <td style={{ padding: '10px' }}>
                       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                         {u.isBanned && <StatusBadge text="Banned" color="#ef4444" />}
@@ -524,7 +533,8 @@ export default function AdminPage() {
                     <td style={{ padding: '10px', color: 'var(--text-dim)', fontSize: '0.85rem' }}>{u.referralCount}</td>
                     <td style={{ padding: '10px', color: '#818cf8', fontSize: '0.85rem', fontWeight: 600 }}>{u.examsTaken || 0}</td>
                     <td style={{ padding: '10px', color: 'var(--text-dim)', fontSize: '0.8rem' }}>
-                      {new Date(u.createdAt).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: '2-digit' })}
+                      {new Date(u.createdAt).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: '2-digit' })}{', '}
+                      {new Date(u.createdAt).toLocaleTimeString('en-NG', { hour: 'numeric', minute: '2-digit', hour12: true })}
                     </td>
                     <td style={{ padding: '10px' }}>
                       <div style={{ display: 'flex', gap: 6 }}>
@@ -767,6 +777,131 @@ export default function AdminPage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Weekly Rewards Tab */}
+      {tab === 'rewards' && (
+        <div>
+          {rewardsLoading && (
+            <div style={{ textAlign: 'center', padding: 48 }}>
+              <div className="spinner" style={{ width: 24, height: 24, margin: '0 auto' }} />
+              <p style={{ color: 'var(--text-dim)', marginTop: 12 }}>Loading weekly rewards...</p>
+            </div>
+          )}
+
+          {weeklyRewards && !rewardsLoading && (
+            <>
+              {/* Week Header + Navigation */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+                <div>
+                  <h3 style={{ margin: 0, color: 'var(--text-bright)', fontWeight: 800, fontSize: '1.1rem' }}>🏆 Weekly Leaderboard Rewards</h3>
+                  <p style={{ margin: '4px 0 0', color: 'var(--text-dim)', fontSize: '0.82rem' }}>
+                    Week: {weeklyRewards.weekStart} — {weeklyRewards.weekEnd}
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button onClick={() => {
+                    setRewardsLoading(true);
+                    api.adminWeeklyRewards(weeklyRewards.previousWeek).then(r => setWeeklyRewards(r)).catch(() => {}).finally(() => setRewardsLoading(false));
+                  }}
+                    style={{ padding: '6px 14px', borderRadius: 8, border: 'none', cursor: 'pointer', background: 'var(--bg-card)', color: 'var(--text-bright)', fontWeight: 600, fontSize: '0.8rem', transition: 'all 0.2s' }}>
+                    ← Previous Week
+                  </button>
+                  <button onClick={() => {
+                    setRewardsLoading(true);
+                    api.adminWeeklyRewards().then(r => setWeeklyRewards(r)).catch(() => {}).finally(() => setRewardsLoading(false));
+                  }}
+                    style={{ padding: '6px 14px', borderRadius: 8, border: 'none', cursor: 'pointer', background: 'var(--green)', color: '#fff', fontWeight: 600, fontSize: '0.8rem', transition: 'all 0.2s' }}>
+                    Current Week
+                  </button>
+                </div>
+              </div>
+
+              {/* Prize Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
+                {['🥇', '🥈', '🥉'].map((medal, i) => {
+                  const entry = weeklyRewards.entries[i];
+                  const prizes = ['₦1,000 Airtime', '₦500 Airtime', '₦300 Airtime'];
+                  const colors = ['#f59e0b', '#94a3b8', '#cd7f32'];
+                  return (
+                    <div key={i} style={{
+                      padding: 16, borderRadius: 14, background: 'var(--bg-card)',
+                      border: `1px solid ${entry ? colors[i] + '40' : 'var(--border)'}`,
+                      textAlign: 'center', opacity: entry ? 1 : 0.4,
+                    }}>
+                      <div style={{ fontSize: 28, marginBottom: 4 }}>{medal}</div>
+                      <div style={{ fontWeight: 800, color: colors[i], fontSize: '1rem' }}>{prizes[i]}</div>
+                      <div style={{ color: 'var(--text-dim)', fontSize: '0.75rem', marginTop: 2 }}>
+                        {entry ? entry.fullName : 'No contestant'}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Detailed Table */}
+              {weeklyRewards.entries.length > 0 ? (
+                <div style={{ overflowX: 'auto', borderRadius: 14, border: '1px solid var(--border)' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 800 }}>
+                    <thead>
+                      <tr style={{ background: 'var(--bg-card)' }}>
+                        {['Rank', 'Student', 'Email', 'Phone', 'Network', 'Points', 'Accuracy', 'Exams', 'Reward'].map(h => (
+                          <th key={h} style={{ padding: '12px 10px', textAlign: 'left', color: 'var(--text-dim)', fontSize: '0.73rem', fontWeight: 700, textTransform: 'uppercase', borderBottom: '1px solid var(--border)' }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {weeklyRewards.entries.map((e: any) => (
+                        <tr key={e.rank} style={{
+                          borderBottom: '1px solid rgba(255,255,255,0.04)',
+                          background: e.rank <= 3 ? `${['#f59e0b', '#94a3b8', '#cd7f32'][e.rank - 1]}08` : 'transparent',
+                        }}>
+                          <td style={{ padding: '10px', textAlign: 'center', fontWeight: 800, fontSize: '0.9rem', color: e.rank <= 3 ? ['#f59e0b', '#94a3b8', '#cd7f32'][e.rank - 1] : 'var(--text-dim)' }}>
+                            {e.rank <= 3 ? ['🥇', '🥈', '🥉'][e.rank - 1] : `#${e.rank}`}
+                          </td>
+                          <td style={{ padding: '10px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div className="nav-avatar" style={{ width: 28, height: 28, fontSize: 12 }}>{e.fullName?.charAt(0)}</div>
+                              <div>
+                                <div style={{ color: 'var(--text-bright)', fontWeight: 600, fontSize: '0.85rem' }}>{e.fullName}</div>
+                                {e.isPaid && <span style={{ fontSize: '0.6rem', padding: '1px 5px', borderRadius: 4, background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>Paid</span>}
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ padding: '10px', color: 'var(--text-dim)', fontSize: '0.82rem' }}>{e.email}</td>
+                          <td style={{ padding: '10px', color: 'var(--text-bright)', fontSize: '0.85rem', fontWeight: 600 }}>{e.phone}</td>
+                          <td style={{ padding: '10px', color: 'var(--text-dim)', fontSize: '0.82rem' }}>{e.network}</td>
+                          <td style={{ padding: '10px', color: 'var(--green-light)', fontWeight: 700, fontSize: '0.9rem' }}>{e.totalPoints}</td>
+                          <td style={{ padding: '10px', color: '#818cf8', fontWeight: 600, fontSize: '0.85rem' }}>{e.accuracy}%</td>
+                          <td style={{ padding: '10px', color: 'var(--text-dim)', fontSize: '0.85rem' }}>{e.examsTaken}</td>
+                          <td style={{ padding: '10px' }}>
+                            {e.reward ? (
+                              <span style={{ padding: '3px 10px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 700, background: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}>{e.reward}</span>
+                            ) : (
+                              <span style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>—</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: 48, color: 'var(--text-dim)' }}>
+                  <div style={{ fontSize: 48, marginBottom: 12 }}>🏆</div>
+                  <p>No leaderboard entries for this week yet.</p>
+                </div>
+              )}
+            </>
+          )}
+
+          {!weeklyRewards && !rewardsLoading && (
+            <div style={{ textAlign: 'center', padding: 48, color: 'var(--text-dim)' }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>🏆</div>
+              <p>Loading rewards data...</p>
             </div>
           )}
         </div>
