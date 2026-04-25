@@ -25,6 +25,11 @@ export default function AdminPage() {
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
   const [userTotal, setUserTotal] = useState(0);
+  const [userPage, setUserPage] = useState(1);
+  const [userTotalPages, setUserTotalPages] = useState(1);
+  const [userFilter, setUserFilter] = useState<'all' | 'paid' | 'free'>('all');
+  const [exportLoading, setExportLoading] = useState(false);
+  const [selectedUsers, setSelectedUsers] = useState<Set<number>>(new Set());
   const [tickets, setTickets] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -58,12 +63,26 @@ export default function AdminPage() {
     }
   }, [router]);
 
+  const fetchUsers = useCallback(async (pg = userPage, flt = userFilter, srch = search) => {
+    try {
+      const filterParam = flt === 'all' ? '' : flt;
+      const u = await api.adminUsers(srch, pg, filterParam);
+      setUsers(u.users);
+      setUserTotal(u.total);
+      setUserTotalPages(u.totalPages);
+      setUserPage(u.page);
+      setSelectedUsers(new Set());
+    } catch (err: any) {
+      if (err.message?.includes('Admin')) router.push('/');
+    }
+  }, [userPage, userFilter, search, router]);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const [m, u, t, r, p, a] = await Promise.all([
         api.adminMetrics(period),
-        api.adminUsers(search),
+        api.adminUsers(search, 1, userFilter === 'all' ? '' : userFilter),
         api.adminTickets(),
         api.adminReferrals().catch(() => []),
         api.adminPayouts().catch(() => []),
@@ -72,6 +91,9 @@ export default function AdminPage() {
       setMetrics(m);
       setUsers(u.users);
       setUserTotal(u.total);
+      setUserTotalPages(u.totalPages);
+      setUserPage(u.page);
+      setSelectedUsers(new Set());
       setTickets(t);
       setReferrals(r);
       setPayouts(p);
@@ -81,7 +103,7 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
-  }, [search, period, analyticsPeriod, router]);
+  }, [search, period, analyticsPeriod, userFilter, router]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -138,7 +160,61 @@ export default function AdminPage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchData();
+    setUserPage(1);
+    fetchUsers(1, userFilter, search);
+  };
+
+  const handleFilterChange = (f: 'all' | 'paid' | 'free') => {
+    setUserFilter(f);
+    setUserPage(1);
+    fetchUsers(1, f, search);
+  };
+
+  const handlePageChange = (pg: number) => {
+    fetchUsers(pg, userFilter, search);
+  };
+
+  const toggleSelectUser = (id: number) => {
+    setSelectedUsers(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedUsers.size === users.length) setSelectedUsers(new Set());
+    else setSelectedUsers(new Set(users.map(u => u.id)));
+  };
+
+  const handleExport = async (format: 'csv' | 'excel') => {
+    setExportLoading(true);
+    try {
+      const filterParam = userFilter === 'all' ? '' : userFilter;
+      const data = await api.adminExportUsers(search, filterParam);
+      const headers = ['ID', 'Full Name', 'Email', 'Status', 'Banned', 'Admin', 'GeniusCoins', 'Referrals', 'Exams Taken', 'Referral Code', 'Phone', 'Network', 'Joined At'];
+      const rows = data.map((u: any) => [u.id, u.fullName, u.email, u.status, u.banned, u.admin, u.geniuscoins, u.referrals, u.examsTaken, u.referralCode, u.phone, u.network, u.joinedAt]);
+
+      if (format === 'csv') {
+        const csvContent = [headers.join(','), ...rows.map((r: any[]) => r.map((v: any) => `"${String(v).replace(/"/g, '""')}"`).join(','))].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `prepgenie_users_${userFilter}_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click(); URL.revokeObjectURL(url);
+      } else {
+        // Excel-compatible XML format
+        const xmlRows = rows.map((r: any[]) => '<Row>' + r.map((v: any) => `<Cell><Data ss:Type="${typeof v === 'number' ? 'Number' : 'String'}">${String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;')}</Data></Cell>`).join('') + '</Row>').join('');
+        const xml = `<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Users"><Table><Row>${headers.map(h => `<Cell><Data ss:Type="String">${h}</Data></Cell>`).join('')}</Row>${xmlRows}</Table></Worksheet></Workbook>`;
+        const blob = new Blob([xml], { type: 'application/vnd.ms-excel' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `prepgenie_users_${userFilter}_${new Date().toISOString().split('T')[0]}.xls`;
+        a.click(); URL.revokeObjectURL(url);
+      }
+      showToast(`Exported ${data.length} users as ${format.toUpperCase()}`, 'success');
+    } catch (err: any) { showToast(err.message, 'error'); }
+    finally { setExportLoading(false); }
   };
 
   if (authLoading || loading) return <div className="loading-container"><div className="spinner" /><p>Loading admin dashboard...</p></div>;
@@ -342,55 +418,115 @@ export default function AdminPage() {
       {/* Users Table */}
       {tab === 'users' && (
         <div>
-          <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-            <input
-              type="text" placeholder="Search by name or email..." value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{
-                flex: 1, padding: '10px 16px', borderRadius: 10,
-                background: 'var(--bg-card)', border: '1px solid var(--border)',
-                color: 'var(--text)', fontSize: '0.9rem', outline: 'none',
-              }}
-            />
-            <button type="submit" className="btn btn-primary btn-sm">🔍 Search</button>
-          </form>
-
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: 12 }}>
-            Showing {users.length} of {userTotal} users
+          {/* User Stats Summary Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 20 }}>
+            <MetricCard label="Total Users" value={userTotal} icon="👥" color="var(--green-light)" />
+            <MetricCard label="Paid Users" value={users.filter(u => u.isPaid).length > 0 ? metrics?.paidUsersAll || '—' : '—'} icon="💎" color="#10b981" />
+            <MetricCard label="Free Users" value={metrics ? (metrics.totalUsersAll - metrics.paidUsersAll) : '—'} icon="🆓" color="#6b7280" />
+            <MetricCard label="Banned" value={metrics?.bannedUsers || 0} icon="🚫" color="#ef4444" />
           </div>
 
+          {/* Search + Filter Row */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+            <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, flex: 1, minWidth: 200 }}>
+              <input
+                type="text" placeholder="Search by name or email..." value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{
+                  flex: 1, padding: '10px 16px', borderRadius: 10,
+                  background: 'var(--bg-card)', border: '1px solid var(--border)',
+                  color: 'var(--text)', fontSize: '0.9rem', outline: 'none',
+                }}
+              />
+              <button type="submit" className="btn btn-primary btn-sm">🔍 Search</button>
+            </form>
+
+            {/* Filter Buttons */}
+            <div style={{ display: 'flex', gap: 4, padding: 3, background: 'var(--bg-card)', borderRadius: 10, border: '1px solid var(--border)' }}>
+              {([['all', 'All'], ['paid', 'Paid'], ['free', 'Free']] as const).map(([key, label]) => (
+                <button key={key} onClick={() => handleFilterChange(key as any)}
+                  style={{
+                    padding: '6px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600,
+                    border: 'none', cursor: 'pointer', transition: 'all 0.2s',
+                    background: userFilter === key ? (key === 'paid' ? '#10b981' : key === 'free' ? '#6b7280' : 'var(--green)') : 'transparent',
+                    color: userFilter === key ? '#fff' : 'var(--text-dim)',
+                  }}>
+                  {key === 'paid' ? '💎' : key === 'free' ? '🆓' : '👥'} {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Export + Info Row */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
+              Showing {users.length} of {userTotal} users
+              {userFilter !== 'all' && <span style={{ color: userFilter === 'paid' ? '#10b981' : '#6b7280', fontWeight: 700 }}> • Filtered: {userFilter.charAt(0).toUpperCase() + userFilter.slice(1)}</span>}
+              {selectedUsers.size > 0 && <span style={{ color: '#818cf8', fontWeight: 700 }}> • {selectedUsers.size} selected</span>}
+              {' '}• Page {userPage} of {userTotalPages}
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button onClick={() => handleExport('csv')} disabled={exportLoading}
+                style={{
+                  padding: '6px 14px', borderRadius: 8, border: 'none', cursor: exportLoading ? 'wait' : 'pointer',
+                  background: 'rgba(16,185,129,0.12)', color: '#10b981', fontWeight: 600, fontSize: '0.78rem',
+                  transition: 'all 0.2s', opacity: exportLoading ? 0.5 : 1,
+                }}>
+                {exportLoading ? '...' : '📄 Export CSV'}
+              </button>
+              <button onClick={() => handleExport('excel')} disabled={exportLoading}
+                style={{
+                  padding: '6px 14px', borderRadius: 8, border: 'none', cursor: exportLoading ? 'wait' : 'pointer',
+                  background: 'rgba(129,140,248,0.12)', color: '#818cf8', fontWeight: 600, fontSize: '0.78rem',
+                  transition: 'all 0.2s', opacity: exportLoading ? 0.5 : 1,
+                }}>
+                {exportLoading ? '...' : '📊 Export Excel'}
+              </button>
+            </div>
+          </div>
+
+          {/* Users Table */}
           <div style={{ overflowX: 'auto', borderRadius: 14, border: '1px solid var(--border)' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 800 }}>
               <thead>
                 <tr style={{ background: 'var(--bg-card)' }}>
-                  {['Name', 'Email', 'Status', 'Coins', 'Refs', 'Joined', 'Actions'].map(h => (
-                    <th key={h} style={{ padding: '12px 14px', textAlign: 'left', color: 'var(--text-dim)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', borderBottom: '1px solid var(--border)' }}>{h}</th>
+                  <th style={{ padding: '12px 10px', textAlign: 'center', borderBottom: '1px solid var(--border)', width: 36 }}>
+                    <input type="checkbox" checked={selectedUsers.size === users.length && users.length > 0} onChange={toggleSelectAll}
+                      style={{ accentColor: 'var(--green)', cursor: 'pointer', width: 15, height: 15 }} />
+                  </th>
+                  {['Name', 'Email', 'Status', 'Coins', 'Refs', 'Exams', 'Joined', 'Actions'].map(h => (
+                    <th key={h} style={{ padding: '12px 10px', textAlign: 'left', color: 'var(--text-dim)', fontSize: '0.73rem', fontWeight: 700, textTransform: 'uppercase', borderBottom: '1px solid var(--border)' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {users.map(u => (
-                  <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                    <td style={{ padding: '10px 14px' }}>
+                  <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', background: selectedUsers.has(u.id) ? 'rgba(129,140,248,0.06)' : 'transparent', transition: 'background 0.15s' }}>
+                    <td style={{ padding: '10px', textAlign: 'center' }}>
+                      <input type="checkbox" checked={selectedUsers.has(u.id)} onChange={() => toggleSelectUser(u.id)}
+                        style={{ accentColor: 'var(--green)', cursor: 'pointer', width: 15, height: 15 }} />
+                    </td>
+                    <td style={{ padding: '10px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div className="nav-avatar" style={{ width: 28, height: 28, fontSize: 12 }}>{u.fullName?.charAt(0)}</div>
                         <span style={{ color: 'var(--text-bright)', fontWeight: 600, fontSize: '0.85rem' }}>{u.fullName}</span>
                         {u.isAdmin && <span style={{ fontSize: '0.65rem', padding: '1px 6px', borderRadius: 6, background: 'rgba(139,92,246,0.2)', color: '#a78bfa' }}>Admin</span>}
                       </div>
                     </td>
-                    <td style={{ padding: '10px 14px', color: 'var(--text-dim)', fontSize: '0.85rem' }}>{u.email}</td>
-                    <td style={{ padding: '10px 14px' }}>
+                    <td style={{ padding: '10px', color: 'var(--text-dim)', fontSize: '0.82rem', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</td>
+                    <td style={{ padding: '10px' }}>
                       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                         {u.isBanned && <StatusBadge text="Banned" color="#ef4444" />}
                         {u.isPaid ? <StatusBadge text="Paid" color="#10b981" /> : <StatusBadge text="Free" color="#6b7280" />}
                       </div>
                     </td>
-                    <td style={{ padding: '10px 14px', color: 'var(--gold)', fontWeight: 700, fontSize: '0.85rem' }}>{u.geniuscoins}🪙</td>
-                    <td style={{ padding: '10px 14px', color: 'var(--text-dim)', fontSize: '0.85rem' }}>{u.referralCount}</td>
-                    <td style={{ padding: '10px 14px', color: 'var(--text-dim)', fontSize: '0.8rem' }}>
+                    <td style={{ padding: '10px', color: 'var(--gold)', fontWeight: 700, fontSize: '0.85rem' }}>{u.geniuscoins}🪙</td>
+                    <td style={{ padding: '10px', color: 'var(--text-dim)', fontSize: '0.85rem' }}>{u.referralCount}</td>
+                    <td style={{ padding: '10px', color: '#818cf8', fontSize: '0.85rem', fontWeight: 600 }}>{u.examsTaken || 0}</td>
+                    <td style={{ padding: '10px', color: 'var(--text-dim)', fontSize: '0.8rem' }}>
                       {new Date(u.createdAt).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: '2-digit' })}
                     </td>
-                    <td style={{ padding: '10px 14px' }}>
+                    <td style={{ padding: '10px' }}>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <ActionBtn
                           onClick={() => handleTogglePaid(u.id)}
@@ -413,6 +549,46 @@ export default function AdminPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls */}
+          {userTotalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 20, flexWrap: 'wrap' }}>
+              <button onClick={() => handlePageChange(1)} disabled={userPage === 1}
+                style={{ padding: '6px 10px', borderRadius: 8, border: 'none', cursor: userPage === 1 ? 'default' : 'pointer', background: 'var(--bg-card)', color: userPage === 1 ? 'var(--text-dim)' : 'var(--text-bright)', fontWeight: 600, fontSize: '0.8rem', opacity: userPage === 1 ? 0.4 : 1, transition: 'all 0.2s' }}>
+                ⟨⟨ First
+              </button>
+              <button onClick={() => handlePageChange(userPage - 1)} disabled={userPage === 1}
+                style={{ padding: '6px 12px', borderRadius: 8, border: 'none', cursor: userPage === 1 ? 'default' : 'pointer', background: 'var(--bg-card)', color: userPage === 1 ? 'var(--text-dim)' : 'var(--text-bright)', fontWeight: 600, fontSize: '0.8rem', opacity: userPage === 1 ? 0.4 : 1, transition: 'all 0.2s' }}>
+                ← Prev
+              </button>
+              {Array.from({ length: Math.min(5, userTotalPages) }, (_, i) => {
+                let pg: number;
+                if (userTotalPages <= 5) pg = i + 1;
+                else if (userPage <= 3) pg = i + 1;
+                else if (userPage >= userTotalPages - 2) pg = userTotalPages - 4 + i;
+                else pg = userPage - 2 + i;
+                return (
+                  <button key={pg} onClick={() => handlePageChange(pg)}
+                    style={{
+                      padding: '6px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                      background: userPage === pg ? 'var(--green)' : 'var(--bg-card)',
+                      color: userPage === pg ? '#fff' : 'var(--text-dim)',
+                      fontWeight: 700, fontSize: '0.85rem', minWidth: 36, transition: 'all 0.2s',
+                    }}>
+                    {pg}
+                  </button>
+                );
+              })}
+              <button onClick={() => handlePageChange(userPage + 1)} disabled={userPage === userTotalPages}
+                style={{ padding: '6px 12px', borderRadius: 8, border: 'none', cursor: userPage === userTotalPages ? 'default' : 'pointer', background: 'var(--bg-card)', color: userPage === userTotalPages ? 'var(--text-dim)' : 'var(--text-bright)', fontWeight: 600, fontSize: '0.8rem', opacity: userPage === userTotalPages ? 0.4 : 1, transition: 'all 0.2s' }}>
+                Next →
+              </button>
+              <button onClick={() => handlePageChange(userTotalPages)} disabled={userPage === userTotalPages}
+                style={{ padding: '6px 10px', borderRadius: 8, border: 'none', cursor: userPage === userTotalPages ? 'default' : 'pointer', background: 'var(--bg-card)', color: userPage === userTotalPages ? 'var(--text-dim)' : 'var(--text-bright)', fontWeight: 600, fontSize: '0.8rem', opacity: userPage === userTotalPages ? 0.4 : 1, transition: 'all 0.2s' }}>
+                Last ⟩⟩
+              </button>
+            </div>
+          )}
         </div>
       )}
 

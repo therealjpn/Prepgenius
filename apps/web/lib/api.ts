@@ -69,8 +69,10 @@ export const api = {
 
   // Admin
   adminMetrics: (period?: string) => request(`/api/admin/metrics?period=${period || 'all'}`),
-  adminUsers: (search?: string, page?: number) =>
-    request(`/api/admin/users?search=${search || ''}&page=${page || 1}`),
+  adminUsers: (search?: string, page?: number, filter?: string) =>
+    request(`/api/admin/users?search=${search || ''}&page=${page || 1}&filter=${filter || ''}`),
+  adminExportUsers: (search?: string, filter?: string) =>
+    request(`/api/admin/users/export?search=${search || ''}&filter=${filter || ''}`),
   adminTogglePaid: (userId: number) =>
     request(`/api/admin/users/${userId}/toggle-paid`, { method: 'PATCH' }),
   adminToggleBan: (userId: number) =>

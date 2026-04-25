@@ -81,7 +81,7 @@ export class AdminService {
   }
 
   // ── User Management ──────────────────────────────────────────
-  async getUsers(search?: string, page = 1, limit = 50) {
+  async getUsers(search?: string, page = 1, limit = 50, filter?: string) {
     const where: any = {};
     if (search) {
       where.OR = [
@@ -89,6 +89,8 @@ export class AdminService {
         { email: { contains: search, mode: 'insensitive' } },
       ];
     }
+    if (filter === 'paid') where.isPaid = true;
+    else if (filter === 'free') where.isPaid = false;
 
     const [users, total] = await Promise.all([
       this.prisma.user.findMany({
@@ -118,6 +120,47 @@ export class AdminService {
       })),
       total, page, totalPages: Math.ceil(total / limit),
     };
+  }
+
+  // ── Export Users ────────────────────────────────────────────────
+  async exportUsers(search?: string, filter?: string) {
+    const where: any = {};
+    if (search) {
+      where.OR = [
+        { fullName: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+    if (filter === 'paid') where.isPaid = true;
+    else if (filter === 'free') where.isPaid = false;
+
+    const users = await this.prisma.user.findMany({
+      where,
+      select: {
+        id: true, email: true, fullName: true,
+        isPaid: true, isBanned: true, isAdmin: true, createdAt: true,
+        referralCode: true, phone: true, network: true,
+        wallet: { select: { balance: true } },
+        _count: { select: { referrals: true, examSessions: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return users.map(u => ({
+      id: u.id,
+      fullName: u.fullName,
+      email: u.email,
+      status: u.isPaid ? 'Paid' : 'Free',
+      banned: u.isBanned ? 'Yes' : 'No',
+      admin: u.isAdmin ? 'Yes' : 'No',
+      geniuscoins: u.wallet?.balance || 0,
+      referrals: u._count.referrals,
+      examsTaken: u._count.examSessions,
+      referralCode: u.referralCode || '',
+      phone: u.phone || '',
+      network: u.network || '',
+      joinedAt: u.createdAt.toISOString(),
+    }));
   }
 
   async togglePaid(userId: number, adminId?: number) {

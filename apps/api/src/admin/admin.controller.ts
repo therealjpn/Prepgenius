@@ -16,8 +16,13 @@ export class AdminController {
 
   // ── Users ──
   @Get('users')
-  getUsers(@Query('search') search?: string, @Query('page') page?: string) {
-    return this.adminService.getUsers(search, page ? parseInt(page) : 1);
+  getUsers(@Query('search') search?: string, @Query('page') page?: string, @Query('filter') filter?: string) {
+    return this.adminService.getUsers(search, page ? parseInt(page) : 1, 50, filter);
+  }
+
+  @Get('users/export')
+  exportUsers(@Query('search') search?: string, @Query('filter') filter?: string) {
+    return this.adminService.exportUsers(search, filter);
   }
 
   @Patch('users/:id/toggle-paid')
