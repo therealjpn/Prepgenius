@@ -5,6 +5,7 @@ import './globals.css';
 import { AuthProvider } from '@/lib/auth';
 import { Navbar } from '@/components/Navbar';
 import { ReferralPopup } from '@/components/ReferralPopup';
+import { FreeUserReferralPopup } from '@/components/FreeUserReferralPopup';
 import { Footer } from '@/components/Footer';
 import { ToastProvider } from '@/components/Toast';
 import { AnalyticsBeacon } from '@/components/AnalyticsBeacon';
@@ -58,6 +59,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <main style={{ flex: 1 }}>{children}</main>
             <Footer />
             <ReferralPopup />
+            <FreeUserReferralPopup />
           </ToastProvider>
         </AuthProvider>
 

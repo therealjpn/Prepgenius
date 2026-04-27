@@ -562,6 +562,158 @@ export class AdminService {
     };
   }
 
+  // ── Referral Tracker ─────────────────────────────────────────────
+  async getReferralTracker(search?: string, page = 1, limit = 50, filter?: string) {
+    // Find all users who have at least one referral OR have a referral code
+    const where: any = {
+      OR: [
+        { referrals: { some: {} } },
+        { referralCode: { not: null } },
+      ],
+    };
+
+    if (search) {
+      where.AND = {
+        OR: [
+          { fullName: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' } },
+          { referralCode: { contains: search, mode: 'insensitive' } },
+        ],
+      };
+    }
+
+    const allReferrers = await this.prisma.user.findMany({
+      where,
+      select: {
+        id: true, email: true, fullName: true, avatarUrl: true,
+        isPaid: true, referralCode: true, createdAt: true, paidAt: true,
+        wallet: { select: { balance: true, totalEarned: true } },
+        referrals: {
+          select: { id: true, isPaid: true },
+        },
+        _count: { select: { referrals: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const siteUrl = process.env.FRONTEND_URL || 'https://prepgenie.xyz';
+    const THRESHOLD = 5;
+
+    // Check for referral_upgrade transactions in bulk
+    const userIds = allReferrers.map(u => u.id);
+    const upgradeTxns = await this.prisma.coinTransaction.findMany({
+      where: { userId: { in: userIds }, type: 'referral_upgrade' },
+      select: { userId: true, createdAt: true },
+    });
+    const upgradeMap = new Map<number, Date>();
+    for (const txn of upgradeTxns) {
+      if (!upgradeMap.has(txn.userId)) upgradeMap.set(txn.userId, txn.createdAt);
+    }
+
+    let enriched = allReferrers.map(u => {
+      const totalReferred = u._count.referrals;
+      const verifiedReferred = u.referrals.filter(r => r.isPaid).length;
+      const pendingReferred = totalReferred - verifiedReferred;
+      const upgradedViaReferrals = upgradeMap.has(u.id);
+      const upgradeDate = upgradeMap.get(u.id) || null;
+
+      return {
+        id: u.id,
+        fullName: u.fullName,
+        email: u.email,
+        avatarUrl: u.avatarUrl,
+        isPaid: u.isPaid,
+        referralCode: u.referralCode,
+        referralLink: u.referralCode ? `${siteUrl}/join?ref=${u.referralCode}` : null,
+        totalReferred,
+        verifiedReferred,
+        pendingReferred,
+        threshold: THRESHOLD,
+        progress: Math.min(100, Math.round((verifiedReferred / THRESHOLD) * 100)),
+        geniuscoins: u.wallet?.balance || 0,
+        totalCoinsEarned: u.wallet?.totalEarned || 0,
+        upgradedViaReferrals,
+        upgradeDate,
+        createdAt: u.createdAt,
+      };
+    });
+
+    // Apply filters
+    if (filter === 'upgraded') {
+      enriched = enriched.filter(u => u.upgradedViaReferrals);
+    } else if (filter === 'close') {
+      enriched = enriched.filter(u => !u.isPaid && u.verifiedReferred >= 3 && u.verifiedReferred < THRESHOLD);
+    } else if (filter === 'active') {
+      enriched = enriched.filter(u => u.totalReferred >= 1);
+    } else if (filter === 'free') {
+      enriched = enriched.filter(u => !u.isPaid);
+    }
+
+    const total = enriched.length;
+    const paginated = enriched.slice((page - 1) * limit, page * limit);
+
+    // Summary stats
+    const totalActiveReferrers = allReferrers.filter(u => u._count.referrals >= 1).length;
+    const totalUpgraded = upgradeMap.size;
+    const totalCloseToThreshold = allReferrers.filter(u => {
+      const v = u.referrals.filter(r => r.isPaid).length;
+      return !u.isPaid && v >= 3 && v < THRESHOLD;
+    }).length;
+    const totalVerifiedReferrals = allReferrers.reduce((sum, u) => sum + u.referrals.filter(r => r.isPaid).length, 0);
+
+    return {
+      referrers: paginated,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+      summary: {
+        totalActiveReferrers,
+        totalUpgraded,
+        totalCloseToThreshold,
+        totalVerifiedReferrals,
+      },
+    };
+  }
+
+  async getUserReferralDetail(userId: number) {
+    return this.referralService.getReferralProgress(userId);
+  }
+
+  async manualReferralUpgrade(userId: number, adminId: number) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+    if (user.isPaid) throw new BadRequestException('User is already a paid/premium user');
+
+    // Upgrade user to premium
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { isPaid: true, paidAt: new Date() },
+    });
+
+    // Count their verified referrals for the log
+    const verifiedCount = await this.prisma.user.count({
+      where: { referredById: userId, isPaid: true },
+    });
+
+    // Log the manual upgrade as a coin transaction
+    const wallet = await this.prisma.geniuscoinWallet.findUnique({ where: { userId } });
+    await this.prisma.coinTransaction.create({
+      data: {
+        userId,
+        amount: 0,
+        type: 'referral_upgrade',
+        reason: `🎉 Premium access granted by admin (manual referral upgrade, ${verifiedCount} verified referrals)`,
+        adminActorId: adminId,
+        balanceBefore: wallet?.balance || 0,
+        balanceAfter: wallet?.balance || 0,
+      },
+    });
+
+    await this.audit(adminId, 'manual_referral_upgrade', 'user', userId, { verifiedCount });
+    this.logger.log(`🎉 Admin ${adminId} manually upgraded user ${userId} (${user.fullName}) to premium via referral program`);
+    return { userId, isPaid: true, verifiedReferrals: verifiedCount };
+  }
+
   private getCurrentMonth(): string {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;

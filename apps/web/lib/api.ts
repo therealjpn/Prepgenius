@@ -118,4 +118,12 @@ export const api = {
   // Weekly Rewards (admin)
   adminWeeklyRewards: (week?: string) =>
     request(`/api/admin/weekly-rewards${week ? `?week=${week}` : ''}`),
+
+  // Referral Tracker (admin)
+  adminReferralTracker: (search?: string, page?: number, filter?: string) =>
+    request(`/api/admin/referral-tracker?search=${search || ''}&page=${page || 1}&filter=${filter || ''}`),
+  adminUserReferralDetail: (userId: number) =>
+    request(`/api/admin/referral-tracker/${userId}`),
+  adminReferralUpgrade: (userId: number) =>
+    request(`/api/admin/referral-tracker/${userId}/upgrade`, { method: 'POST' }),
 };

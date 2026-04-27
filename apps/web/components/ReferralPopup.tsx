@@ -34,6 +34,8 @@ export function ReferralPopup() {
 
   const shouldShowPopup = useCallback(() => {
     if (!user) return false;
+    // Free users see the FreeUserReferralPopup instead
+    if (!(user as any).isPaid) return false;
     if (typeof window !== 'undefined' && window.location.pathname === '/invite') return false;
     if (typeof window !== 'undefined' && (window.location.pathname === '/' || window.location.pathname === '/login')) return false;
     return true;

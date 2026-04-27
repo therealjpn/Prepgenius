@@ -17,7 +17,7 @@ export default function AdminPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { showToast } = useToast();
-  const [tab, setTab] = useState<'metrics' | 'analytics' | 'users' | 'referrals' | 'payouts' | 'tickets' | 'rewards'>('metrics');
+  const [tab, setTab] = useState<'metrics' | 'analytics' | 'users' | 'referrals' | 'payouts' | 'tickets' | 'rewards' | 'reftracker'>('metrics');
   const [period, setPeriod] = useState('all');
   const [metrics, setMetrics] = useState<any>(null);
   const [analytics, setAnalytics] = useState<any>(null);
@@ -40,6 +40,13 @@ export default function AdminPage() {
   const [payouts, setPayouts] = useState<any[]>([]);
   const [weeklyRewards, setWeeklyRewards] = useState<any>(null);
   const [rewardsLoading, setRewardsLoading] = useState(false);
+  const [refTracker, setRefTracker] = useState<any>(null);
+  const [refTrackerLoading, setRefTrackerLoading] = useState(false);
+  const [refTrackerSearch, setRefTrackerSearch] = useState('');
+  const [refTrackerFilter, setRefTrackerFilter] = useState('all');
+  const [refTrackerPage, setRefTrackerPage] = useState(1);
+  const [expandedReferrer, setExpandedReferrer] = useState<any>(null);
+  const [expandedLoading, setExpandedLoading] = useState(false);
 
   const fetchMetrics = useCallback(async (p: string) => {
     setMetricsLoading(true);
@@ -230,13 +237,17 @@ export default function AdminPage() {
           <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', marginTop: 4 }}>Manage users, view metrics & resolve support tickets</p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {(['metrics', 'analytics', 'users', 'referrals', 'payouts', 'tickets', 'rewards'] as const).map(t => (
+          {(['metrics', 'analytics', 'users', 'referrals', 'payouts', 'tickets', 'rewards', 'reftracker'] as const).map(t => (
             <button key={t} onClick={() => {
               setTab(t);
               if (t === 'analytics' && !analytics) fetchAnalytics(analyticsPeriod);
               if (t === 'rewards' && !weeklyRewards) {
                 setRewardsLoading(true);
                 api.adminWeeklyRewards().then(r => setWeeklyRewards(r)).catch(() => {}).finally(() => setRewardsLoading(false));
+              }
+              if (t === 'reftracker' && !refTracker) {
+                setRefTrackerLoading(true);
+                api.adminReferralTracker('', 1, '').then(r => setRefTracker(r)).catch(() => {}).finally(() => setRefTrackerLoading(false));
               }
             }}
               style={{
@@ -245,7 +256,7 @@ export default function AdminPage() {
                 color: tab === t ? '#fff' : 'var(--text-dim)',
                 transition: 'all 0.2s',
               }}>
-              {t === 'metrics' ? '📊' : t === 'analytics' ? '👁️' : t === 'users' ? '👥' : t === 'referrals' ? '🔗' : t === 'payouts' ? '💸' : t === 'rewards' ? '🏆' : '🎫'} {t.charAt(0).toUpperCase() + t.slice(1)}
+              {t === 'metrics' ? '📊' : t === 'analytics' ? '👁️' : t === 'users' ? '👥' : t === 'referrals' ? '🔗' : t === 'payouts' ? '💸' : t === 'rewards' ? '🏆' : t === 'reftracker' ? '🎯' : '🎫'} {t === 'reftracker' ? 'Ref Tracker' : t.charAt(0).toUpperCase() + t.slice(1)}
             </button>
           ))}
         </div>
@@ -902,6 +913,198 @@ export default function AdminPage() {
             <div style={{ textAlign: 'center', padding: 48, color: 'var(--text-dim)' }}>
               <div style={{ fontSize: 48, marginBottom: 12 }}>🏆</div>
               <p>Loading rewards data...</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Ref Tracker Tab */}
+      {tab === 'reftracker' && (
+        <div>
+          {refTrackerLoading && (
+            <div style={{ textAlign: 'center', padding: 48 }}>
+              <div className="spinner" style={{ width: 24, height: 24, margin: '0 auto' }} />
+              <p style={{ color: 'var(--text-dim)', marginTop: 12 }}>Loading referral tracker...</p>
+            </div>
+          )}
+
+          {refTracker && !refTrackerLoading && (
+            <>
+              {/* Summary Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 20 }}>
+                <MetricCard label="Active Referrers" value={refTracker.summary?.totalActiveReferrers || 0} icon="👥" color="var(--green-light)" />
+                <MetricCard label="Auto-Upgraded" value={refTracker.summary?.totalUpgraded || 0} icon="🎉" color="#10b981" />
+                <MetricCard label="Close to Threshold" value={refTracker.summary?.totalCloseToThreshold || 0} icon="🔥" color="#f59e0b" />
+                <MetricCard label="Verified Referrals" value={refTracker.summary?.totalVerifiedReferrals || 0} icon="✅" color="#818cf8" />
+              </div>
+
+              {/* Search + Filter */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+                <form onSubmit={(e) => { e.preventDefault(); setRefTrackerPage(1); setRefTrackerLoading(true); api.adminReferralTracker(refTrackerSearch, 1, refTrackerFilter === 'all' ? '' : refTrackerFilter).then(r => setRefTracker(r)).catch(() => {}).finally(() => setRefTrackerLoading(false)); }} style={{ display: 'flex', gap: 8, flex: 1, minWidth: 200 }}>
+                  <input type="text" placeholder="Search by name, email, or referral code..." value={refTrackerSearch}
+                    onChange={(e) => setRefTrackerSearch(e.target.value)}
+                    style={{ flex: 1, padding: '10px 16px', borderRadius: 10, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text)', fontSize: '0.9rem', outline: 'none' }} />
+                  <button type="submit" className="btn btn-primary btn-sm">🔍 Search</button>
+                </form>
+                <div style={{ display: 'flex', gap: 4, padding: 3, background: 'var(--bg-card)', borderRadius: 10, border: '1px solid var(--border)' }}>
+                  {([['all', 'All'], ['active', 'Active'], ['close', 'Near 5'], ['upgraded', 'Upgraded'], ['free', 'Free']] as const).map(([key, label]) => (
+                    <button key={key} onClick={() => { setRefTrackerFilter(key); setRefTrackerPage(1); setRefTrackerLoading(true); api.adminReferralTracker(refTrackerSearch, 1, key === 'all' ? '' : key).then(r => setRefTracker(r)).catch(() => {}).finally(() => setRefTrackerLoading(false)); }}
+                      style={{ padding: '6px 12px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600, border: 'none', cursor: 'pointer', transition: 'all 0.2s', background: refTrackerFilter === key ? (key === 'upgraded' ? '#10b981' : key === 'close' ? '#f59e0b' : 'var(--green)') : 'transparent', color: refTrackerFilter === key ? '#fff' : 'var(--text-dim)' }}>
+                      {key === 'upgraded' ? '🎉' : key === 'close' ? '🔥' : key === 'active' ? '📊' : key === 'free' ? '🆓' : '👥'} {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)', marginBottom: 12 }}>
+                Showing {refTracker.referrers?.length || 0} of {refTracker.total || 0} referrers • Page {refTracker.page || 1} of {refTracker.totalPages || 1}
+              </div>
+
+              {/* Referrer Table */}
+              {refTracker.referrers?.length > 0 ? (
+                <div style={{ overflowX: 'auto', borderRadius: 14, border: '1px solid var(--border)' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
+                    <thead>
+                      <tr style={{ background: 'var(--bg-card)' }}>
+                        {['User', 'Referral Link', 'Total', 'Verified', 'Pending', 'Progress', 'Status', 'Actions'].map(h => (
+                          <th key={h} style={{ padding: '12px 10px', textAlign: 'left', color: 'var(--text-dim)', fontSize: '0.73rem', fontWeight: 700, textTransform: 'uppercase', borderBottom: '1px solid var(--border)' }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {refTracker.referrers.map((r: any) => (
+                        <>
+                          <tr key={r.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer', background: expandedReferrer?.userId === r.id ? 'rgba(129,140,248,0.06)' : 'transparent', transition: 'background 0.15s' }}
+                            onClick={async () => {
+                              if (expandedReferrer?.userId === r.id) { setExpandedReferrer(null); return; }
+                              setExpandedLoading(true);
+                              try { const d = await api.adminUserReferralDetail(r.id); setExpandedReferrer(d); } catch {} finally { setExpandedLoading(false); }
+                            }}>
+                            <td style={{ padding: '10px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <div className="nav-avatar" style={{ width: 28, height: 28, fontSize: 12 }}>{r.fullName?.charAt(0)}</div>
+                                <div>
+                                  <div style={{ color: 'var(--text-bright)', fontWeight: 600, fontSize: '0.85rem' }}>{r.fullName}</div>
+                                  <div style={{ color: 'var(--text-dim)', fontSize: '0.72rem' }}>{r.email}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td style={{ padding: '10px' }}>
+                              {r.referralCode ? (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <code style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: 6, background: 'rgba(129,140,248,0.1)', color: '#818cf8' }}>{r.referralCode}</code>
+                                  <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(r.referralLink); showToast('Referral link copied!', 'success'); }}
+                                    style={{ padding: '2px 6px', borderRadius: 4, border: 'none', cursor: 'pointer', background: 'rgba(16,185,129,0.1)', color: '#10b981', fontSize: '0.7rem', fontWeight: 600 }}>📋</button>
+                                </div>
+                              ) : <span style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>—</span>}
+                            </td>
+                            <td style={{ padding: '10px', color: 'var(--text-bright)', fontWeight: 700, fontSize: '0.85rem' }}>{r.totalReferred}</td>
+                            <td style={{ padding: '10px', color: '#10b981', fontWeight: 700, fontSize: '0.85rem' }}>{r.verifiedReferred}</td>
+                            <td style={{ padding: '10px', color: '#f59e0b', fontWeight: 600, fontSize: '0.85rem' }}>{r.pendingReferred}</td>
+                            <td style={{ padding: '10px', minWidth: 120 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <div style={{ flex: 1, height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                                  <div style={{ width: `${r.progress}%`, height: '100%', borderRadius: 4, background: r.progress >= 100 ? '#10b981' : r.progress >= 60 ? '#f59e0b' : '#818cf8', transition: 'width 0.3s ease' }} />
+                                </div>
+                                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: r.progress >= 100 ? '#10b981' : 'var(--text-dim)', whiteSpace: 'nowrap' }}>{r.verifiedReferred}/{r.threshold}</span>
+                              </div>
+                            </td>
+                            <td style={{ padding: '10px' }}>
+                              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                                {r.upgradedViaReferrals && <StatusBadge text="🎉 Upgraded" color="#10b981" />}
+                                {r.isPaid && !r.upgradedViaReferrals && <StatusBadge text="Paid" color="#10b981" />}
+                                {!r.isPaid && <StatusBadge text="Free" color="#6b7280" />}
+                                {!r.isPaid && r.verifiedReferred >= 3 && r.verifiedReferred < 5 && <StatusBadge text="🔥 Close" color="#f59e0b" />}
+                              </div>
+                            </td>
+                            <td style={{ padding: '10px' }}>
+                              {!r.isPaid && (
+                                <ActionBtn onClick={async () => {
+                                  if (!confirm(`Manually upgrade ${r.fullName} to premium via referral program? (${r.verifiedReferred} verified referrals)`)) return;
+                                  setActionLoading(r.id);
+                                  try {
+                                    await api.adminReferralUpgrade(r.id);
+                                    showToast(`${r.fullName} upgraded to premium!`, 'success');
+                                    setRefTrackerLoading(true);
+                                    api.adminReferralTracker(refTrackerSearch, refTrackerPage, refTrackerFilter === 'all' ? '' : refTrackerFilter).then(d => setRefTracker(d)).catch(() => {}).finally(() => setRefTrackerLoading(false));
+                                  } catch (err: any) { showToast(err.message, 'error'); }
+                                  finally { setActionLoading(null); }
+                                }} loading={actionLoading === r.id} color="#10b981" label="⬆ Upgrade" />
+                              )}
+                            </td>
+                          </tr>
+                          {/* Expanded Detail Row */}
+                          {expandedReferrer?.userId === r.id && (
+                            <tr key={`detail-${r.id}`}>
+                              <td colSpan={8} style={{ padding: 0, background: 'rgba(129,140,248,0.03)' }}>
+                                <div style={{ padding: '16px 20px', borderBottom: '2px solid var(--border)' }}>
+                                  {expandedLoading ? (
+                                    <div style={{ textAlign: 'center', padding: 16 }}><div className="spinner" style={{ width: 18, height: 18, margin: '0 auto' }} /></div>
+                                  ) : (
+                                    <>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                        <h4 style={{ margin: 0, color: 'var(--text-bright)', fontWeight: 700, fontSize: '0.9rem' }}>📋 Referral Detail — {expandedReferrer.fullName}</h4>
+                                        {expandedReferrer.referralLink && (
+                                          <button onClick={() => { navigator.clipboard.writeText(expandedReferrer.referralLink); showToast('Full referral link copied!', 'success'); }}
+                                            style={{ padding: '4px 12px', borderRadius: 6, border: 'none', cursor: 'pointer', background: 'rgba(129,140,248,0.12)', color: '#818cf8', fontWeight: 600, fontSize: '0.75rem' }}>
+                                            📋 Copy Link: {expandedReferrer.referralLink}
+                                          </button>
+                                        )}
+                                      </div>
+                                      {expandedReferrer.referredUsers?.length > 0 ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                          {expandedReferrer.referredUsers.map((ref: any) => (
+                                            <div key={ref.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderRadius: 8, background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                                              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                <div className="nav-avatar" style={{ width: 24, height: 24, fontSize: 10 }}>{ref.fullName?.charAt(0)}</div>
+                                                <span style={{ color: 'var(--text-bright)', fontWeight: 600, fontSize: '0.82rem' }}>{ref.fullName}</span>
+                                              </div>
+                                              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                                <StatusBadge text={ref.isPaid ? '✅ Verified' : '⏳ Pending'} color={ref.isPaid ? '#10b981' : '#f59e0b'} />
+                                                <span style={{ color: 'var(--text-dim)', fontSize: '0.75rem' }}>Joined {new Date(ref.createdAt).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: '2-digit' })}</span>
+                                                {ref.paidAt && <span style={{ color: '#10b981', fontSize: '0.72rem' }}>Paid {new Date(ref.paidAt).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' })}</span>}
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      ) : (
+                                        <p style={{ color: 'var(--text-dim)', fontSize: '0.85rem', textAlign: 'center', padding: 16 }}>No referred users yet</p>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: 48, color: 'var(--text-dim)' }}>
+                  <div style={{ fontSize: 48, marginBottom: 12 }}>🎯</div>
+                  <p>No referrers found matching your criteria.</p>
+                </div>
+              )}
+
+              {/* Pagination */}
+              {(refTracker.totalPages || 1) > 1 && (
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 20 }}>
+                  <button onClick={() => { const pg = refTrackerPage - 1; setRefTrackerPage(pg); setRefTrackerLoading(true); api.adminReferralTracker(refTrackerSearch, pg, refTrackerFilter === 'all' ? '' : refTrackerFilter).then(r => setRefTracker(r)).catch(() => {}).finally(() => setRefTrackerLoading(false)); }}
+                    disabled={refTrackerPage <= 1} style={{ padding: '6px 12px', borderRadius: 8, border: 'none', cursor: refTrackerPage <= 1 ? 'default' : 'pointer', background: 'var(--bg-card)', color: refTrackerPage <= 1 ? 'var(--text-dim)' : 'var(--text-bright)', fontWeight: 600, fontSize: '0.8rem', opacity: refTrackerPage <= 1 ? 0.4 : 1 }}>← Prev</button>
+                  <span style={{ padding: '6px 12px', fontSize: '0.82rem', color: 'var(--text-dim)' }}>Page {refTracker.page} of {refTracker.totalPages}</span>
+                  <button onClick={() => { const pg = refTrackerPage + 1; setRefTrackerPage(pg); setRefTrackerLoading(true); api.adminReferralTracker(refTrackerSearch, pg, refTrackerFilter === 'all' ? '' : refTrackerFilter).then(r => setRefTracker(r)).catch(() => {}).finally(() => setRefTrackerLoading(false)); }}
+                    disabled={refTrackerPage >= (refTracker.totalPages || 1)} style={{ padding: '6px 12px', borderRadius: 8, border: 'none', cursor: refTrackerPage >= (refTracker.totalPages || 1) ? 'default' : 'pointer', background: 'var(--bg-card)', color: refTrackerPage >= (refTracker.totalPages || 1) ? 'var(--text-dim)' : 'var(--text-bright)', fontWeight: 600, fontSize: '0.8rem', opacity: refTrackerPage >= (refTracker.totalPages || 1) ? 0.4 : 1 }}>Next →</button>
+                </div>
+              )}
+            </>
+          )}
+
+          {!refTracker && !refTrackerLoading && (
+            <div style={{ textAlign: 'center', padding: 48, color: 'var(--text-dim)' }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>🎯</div>
+              <p>Loading referral tracker...</p>
             </div>
           )}
         </div>

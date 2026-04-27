@@ -8,6 +8,7 @@ export class ReferralService {
   private readonly COIN_VALUE_NGN = 1;         // 1 coin = ₦1 airtime
   private readonly MIN_PAYOUT_COINS = 1000;    // 5 referrals minimum
   private readonly REFERRAL_DISCOUNT = 100;    // ₦100 off for referred user
+  private readonly REFERRAL_UPGRADE_THRESHOLD = 5; // 5 verified referrals = free premium
 
   constructor(private prisma: PrismaService) {}
 
@@ -97,9 +98,67 @@ export class ReferralService {
       return;
     }
 
-    const redeemableDate = this.getLastDayOfMonth();
+    // Check if the referrer is a FREE user approaching the referral-to-premium threshold
+    const referrer = await this.prisma.user.findUnique({
+      where: { id: referrerId },
+      select: { isPaid: true, fullName: true },
+    });
 
-    // Get current wallet balance for logging
+    // Count verified (paid) referrals for this referrer (including the current one being awarded)
+    const verifiedReferralCount = await this.prisma.user.count({
+      where: { referredById: referrerId, isPaid: true },
+    });
+
+    const redeemableDate = this.getLastDayOfMonth();
+    const currentMonth = this.getCurrentMonth();
+
+    // If referrer is FREE and has reached the upgrade threshold → grant premium instead of coins
+    if (referrer && !referrer.isPaid && verifiedReferralCount >= this.REFERRAL_UPGRADE_THRESHOLD) {
+      // Create reward record with zero coins (premium is the reward)
+      await this.prisma.referralReward.create({
+        data: {
+          referrerId,
+          referredUserId: paidUserId,
+          coinsAwarded: 0,
+          status: 'referral_upgrade',
+          redeemableDate,
+          squadRef: squadRef || null,
+          discountApplied: this.REFERRAL_DISCOUNT,
+        },
+      });
+
+      // Auto-upgrade the referrer to premium
+      await this.prisma.user.update({
+        where: { id: referrerId },
+        data: { isPaid: true, paidAt: new Date() },
+      });
+
+      // Log the upgrade transaction
+      const wallet = await this.prisma.geniuscoinWallet.findUnique({ where: { userId: referrerId } });
+      await this.prisma.coinTransaction.create({
+        data: {
+          userId: referrerId,
+          amount: 0,
+          type: 'referral_upgrade',
+          reason: `🎉 Premium access earned via ${this.REFERRAL_UPGRADE_THRESHOLD} verified referrals (triggered by ${paidUser.fullName})`,
+          relatedRef: squadRef || null,
+          balanceBefore: wallet?.balance || 0,
+          balanceAfter: wallet?.balance || 0,
+        },
+      });
+
+      // Update referral leaderboard
+      await this.prisma.referralLeaderboard.upsert({
+        where: { userId_month: { userId: referrerId, month: currentMonth } },
+        update: { successfulReferrals: { increment: 1 } },
+        create: { userId: referrerId, month: currentMonth, successfulReferrals: 1 },
+      });
+
+      this.logger.log(`🎉 FREE user ${referrerId} (${referrer.fullName}) AUTO-UPGRADED to premium via ${verifiedReferralCount} verified referrals!`);
+      return;
+    }
+
+    // Normal flow: award coins to the referrer
     let wallet = await this.prisma.geniuscoinWallet.findUnique({ where: { userId: referrerId } });
     const balanceBefore = wallet?.balance || 0;
     const balanceAfter = balanceBefore + this.COINS_PER_REFERRAL;
@@ -145,7 +204,6 @@ export class ReferralService {
     });
 
     // Update referral leaderboard
-    const currentMonth = this.getCurrentMonth();
     await this.prisma.referralLeaderboard.upsert({
       where: { userId_month: { userId: referrerId, month: currentMonth } },
       update: { successfulReferrals: { increment: 1 } },
@@ -348,6 +406,57 @@ export class ReferralService {
         coinsNeeded,
         minPayoutCoins: this.MIN_PAYOUT_COINS,
       },
+    };
+  }
+
+  // ── Referral Progress (for admin visibility) ──────────────────
+  async getReferralProgress(userId: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, fullName: true, email: true, referralCode: true, isPaid: true, paidAt: true },
+    });
+    if (!user) return null;
+
+    const siteUrl = process.env.FRONTEND_URL || 'https://prepgenie.xyz';
+    const referralLink = user.referralCode ? `${siteUrl}/join?ref=${user.referralCode}` : null;
+
+    const referredUsers = await this.prisma.user.findMany({
+      where: { referredById: userId },
+      select: { id: true, fullName: true, isPaid: true, createdAt: true, paidAt: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const totalReferred = referredUsers.length;
+    const verifiedReferred = referredUsers.filter(u => u.isPaid).length;
+    const pendingReferred = totalReferred - verifiedReferred;
+
+    // Check if user was auto-upgraded via referrals
+    const upgradeTransaction = await this.prisma.coinTransaction.findFirst({
+      where: { userId, type: 'referral_upgrade' },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      userId: user.id,
+      fullName: user.fullName,
+      email: user.email,
+      referralCode: user.referralCode,
+      referralLink,
+      isPaid: user.isPaid,
+      totalReferred,
+      verifiedReferred,
+      pendingReferred,
+      threshold: this.REFERRAL_UPGRADE_THRESHOLD,
+      progress: Math.min(100, Math.round((verifiedReferred / this.REFERRAL_UPGRADE_THRESHOLD) * 100)),
+      upgradedViaReferrals: !!upgradeTransaction,
+      upgradeDate: upgradeTransaction?.createdAt || null,
+      referredUsers: referredUsers.map(r => ({
+        id: r.id,
+        fullName: r.fullName,
+        isPaid: r.isPaid,
+        createdAt: r.createdAt,
+        paidAt: r.paidAt,
+      })),
     };
   }
 

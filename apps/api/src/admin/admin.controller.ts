@@ -115,4 +115,20 @@ export class AdminController {
   getWeeklyRewards(@Query('week') week?: string) {
     return this.adminService.getWeeklyRewards(week);
   }
+
+  // ── Referral Tracker ──
+  @Get('referral-tracker')
+  getReferralTracker(@Query('search') search?: string, @Query('page') page?: string, @Query('filter') filter?: string) {
+    return this.adminService.getReferralTracker(search, page ? parseInt(page) : 1, 50, filter);
+  }
+
+  @Get('referral-tracker/:id')
+  getUserReferralDetail(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.getUserReferralDetail(id);
+  }
+
+  @Post('referral-tracker/:id/upgrade')
+  manualReferralUpgrade(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.adminService.manualReferralUpgrade(id, req.user.userId);
+  }
 }
