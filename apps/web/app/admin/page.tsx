@@ -514,7 +514,7 @@ export default function AdminPage() {
                     <input type="checkbox" checked={selectedUsers.size === users.length && users.length > 0} onChange={toggleSelectAll}
                       style={{ accentColor: 'var(--green)', cursor: 'pointer', width: 15, height: 15 }} />
                   </th>
-                  {['Name', 'Email', 'Status', 'Coins', 'Refs', 'Exams', 'Joined', 'Actions'].map(h => (
+                  {['Name', 'Email', 'Status', 'Coins', 'Refs', 'Exams', 'Joined', 'Ref Link', 'Actions'].map(h => (
                     <th key={h} style={{ padding: '12px 10px', textAlign: 'left', color: 'var(--text-dim)', fontSize: '0.73rem', fontWeight: 700, textTransform: 'uppercase', borderBottom: '1px solid var(--border)' }}>{h}</th>
                   ))}
                 </tr>
@@ -546,6 +546,14 @@ export default function AdminPage() {
                     <td style={{ padding: '10px', color: 'var(--text-dim)', fontSize: '0.8rem' }}>
                       {new Date(u.createdAt).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: '2-digit' })}{', '}
                       {new Date(u.createdAt).toLocaleTimeString('en-NG', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                    </td>
+                    <td style={{ padding: '10px' }}>
+                      {u.referralCode ? (
+                        <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(`https://prepgenie.xyz/join?ref=${u.referralCode}`); showToast('Referral link copied!', 'success'); }}
+                          style={{ padding: '4px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', background: 'rgba(129,140,248,0.1)', color: '#818cf8', fontSize: '0.7rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          📋 Copy
+                        </button>
+                      ) : <span style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>—</span>}
                     </td>
                     <td style={{ padding: '10px' }}>
                       <div style={{ display: 'flex', gap: 6 }}>
