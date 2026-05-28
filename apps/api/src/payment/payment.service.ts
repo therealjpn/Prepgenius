@@ -24,7 +24,7 @@ export class PaymentService {
   private getSquadApiBase(): string {
     if (SQUAD_SECRET.startsWith('sandbox_sk_') || SQUAD_SECRET.startsWith('sandbox')) {
       this.logger.log('Using Squad SANDBOX API');
-      return 'https://sandbox-api.squadco.com';
+      return 'https://sandbox-api-d.squadco.com';
     }
     this.logger.log('Using Squad LIVE API');
     return 'https://api-d.squadco.com';
@@ -98,7 +98,7 @@ export class PaymentService {
         const data = await res.json();
         this.logger.log(`Squad verify response status: ${data.success}, txn_status: ${data.data?.transaction_status}`);
 
-        verified = data.success && data.data?.transaction_status === 'success';
+        verified = data.success && data.data?.transaction_status?.toLowerCase() === 'success';
 
         if (!verified) {
           this.logger.warn(`Squad verification non-success: status=${data.data?.transaction_status}`);
@@ -144,9 +144,10 @@ export class PaymentService {
     const event = body?.Event || body?.event || '';
     const bodyData = body?.Body || body?.body || {};
     const transactionRef = bodyData?.transaction_ref || body?.TransactionRef || body?.transaction_ref || '';
-    const status = bodyData?.status || bodyData?.transaction_status || body?.transaction_status || '';
+    const rawStatus = bodyData?.status || bodyData?.transaction_status || body?.transaction_status || '';
+    const status = (rawStatus || '').toLowerCase();
 
-    this.logger.log(`📩 Parsed webhook — event: "${event}", ref: "${transactionRef}", status: "${status}"`);
+    this.logger.log(`📩 Parsed webhook — event: "${event}", ref: "${transactionRef}", status: "${rawStatus}" (normalized: "${status}")`);
 
     if (!transactionRef) {
       this.logger.warn('Webhook missing transaction_ref — full body: ' + JSON.stringify(body).substring(0, 500));
@@ -186,7 +187,7 @@ export class PaymentService {
         headers: { Authorization: `Bearer ${SQUAD_SECRET}`, 'Content-Type': 'application/json' },
       });
       const verifyData = await res.json();
-      apiVerified = verifyData.success && verifyData.data?.transaction_status === 'success';
+      apiVerified = verifyData.success && verifyData.data?.transaction_status?.toLowerCase() === 'success';
       this.logger.log(`🔍 API verify result: success=${verifyData.success}, status=${verifyData.data?.transaction_status}`);
     } catch (e: any) {
       this.logger.warn(`API verify failed (proceeding with webhook): ${e.message}`);
